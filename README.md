@@ -24,9 +24,9 @@
 
 通过此工具可以快速对外提供Restful规范的数据微服务j接口，满足碎片化的数据服务需求应用场景的快速响应。
 
-> 说干就干，于是找到了[sqler](https://github.com/alash3al/sqler)，但是(sqler)仅支持REST而不支持Restful。
-> 因此在其基础之上实现了一个完整的SQL转Restful接口的服务工具，在兼容[sqler](https://github.com/alash3al/sqler)语法
-> 上进行了基本的扩展。
+> 说干就干，于是找到了[sqler](https://github.com/alash3al/sqler)，但是[sqler](https://github.com/alash3al/sqler)仅支持REST而不支持Restful。
+> 因此我在其基础之上实现了一个完整的SQL转Restful接口的服务工具，在兼容[sqler](https://github.com/alash3al/sqler)配置语法
+> 同时进行了Restful配置扩展实现。
 
 感谢开源！
 
@@ -49,10 +49,12 @@ HCL是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashi
 
  - 多行字符串从一行<<EOF的末尾开始，并EOF结束。可以使用任何文本代替EOF。例：
 
+```
       <<SQL
       hello
       world
       SQL
+```
 
   - 数字默认为10禁止，如果前缀为0x的数字，则将其视为十六进制。如果它以0为前缀，则将其视为八进制。数字可以是科学记数法：“1e10”。
 
@@ -61,12 +63,14 @@ HCL是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashi
   - 数组可以通过包装来制作[]。示例： ["foo", "bar", 42]。数组可以包含基础类型、其他数组和对象。作为替代方案，可以使用以下结构使用重复的块创建对象列表：
 
 
+```
       service {
           key = "value"
       }
       service {
           key = "value"
       }
+```
 
 ### SQLRestful的配置结构
 
