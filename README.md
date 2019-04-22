@@ -24,9 +24,9 @@
 
 通过此工具可以快速对外提供Restful规范的数据微服务j接口，满足碎片化的数据服务需求应用场景的快速响应。
 
-> 说干就干，于是找到了[sqler](https://github.com/alash3al/sqler)，但是[sqler](https://github.com/alash3al/sqler)仅支持REST而不支持Restful。
-> 因此我在其基础之上实现了一个完整的SQL转Restful接口的服务工具，在兼容[sqler](https://github.com/alash3al/sqler)配置语法
-> 同时进行了Restful配置扩展实现。
+> 说干就干，于是找到了[sqler](https://github.com/alash3al/sqler)，但是[sqler](https://github.com/alash3al/sqler)仅支持REST而不支持Restful。<br>
+>因此我在其基础之上实现了一个完整的SQL转Restful接口的服务工具，在兼容[sqler](https://github.com/alash3al/sqler)配置语法
+>的同时进行了Restful配置扩展实现。
 
 感谢开源！
 
@@ -50,10 +50,10 @@ HCL是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashi
  - 多行字符串从一行<<EOF的末尾开始，并EOF结束。可以使用任何文本代替EOF。例：
 
 ```
-      <<SQL
-      hello
-      world
-      SQL
+    <<SQL
+    hello
+    world
+    SQL
 ```
 
   - 数字默认为10禁止，如果前缀为0x的数字，则将其视为十六进制。如果它以0为前缀，则将其视为八进制。数字可以是科学记数法：“1e10”。
