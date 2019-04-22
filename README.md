@@ -231,3 +231,123 @@ object_items {
 ```
 
 
+### 应答格式
+
+应答采用信奉封装的JSON数据格式，基本格式如下：
+
+```
+{
+  "code": 0,
+  "message": "操作成功",
+  "data": { //宏执行返回
+    ...
+  }
+}
+```
+
+分页数据返回如下：
+
+```
+{
+  "code": 0,
+  "message": "操作成功",
+  "data": { //宏执行返回
+    "offset": 0, //起始索引
+    "total": 0, //总记录数
+    "data": [...] //分页数据列表
+  }
+}
+```
+
+## 使用方法
+
+### 查看帮助
+
+```
+docker run -ti --rm snz1/sqlrestful --help
+```
+
+### 运行服务
+
+```
+docker run -ti --rm snz1/sqlrestful \
+  -v /sqlrestful:/sqlrestful \
+  -driver "postgres" \
+  -dsn "user=<dbuser> password=<password> dbname=<dbname> sslmode=disable connect_timeout=3 host=<db host>" \
+```
+
+> 此处以`PostgresQL`数据库为例，你也可以使用`mysql`连接，参见：<>
+
+### 自定义镜像
+
+```
+# 引入sqlrestful镜像
+FROM snz1/sqlrestful
+
+# 把你的HCL配置文件添加到镜像的`/sqlrestful`目录下
+ADD <your hcl file> /sqlrestful
+
+# 根据生产环境，自定义入口配置参数
+ENTRYPOINT ["sqlrestful", "-driver", "postgres", "-dsn", ...]
+```
+
+### 示例配置
+
+```
+//对象集
+tables {
+
+  //上下文路径
+  path = "/tables"
+
+  //获取对象集数据
+  get {
+
+    //返回记录总数，加了此定义则返回分页对象(强制type=page)
+    total = <<SQL
+      SELECT count(tablename) FROM pg_tables 
+      WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%';
+    SQL
+
+    //输入参数绑定
+    bind {
+      offset = "$input.offset"
+      limit = "$input.limit"
+    }
+
+    //接口返回SQL表达式
+    exec = <<SQL
+      SELECT * FROM pg_tables 
+      WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%' 
+      ORDER BY tablename  offset :offset limit :limit;
+    SQL
+
+  }
+
+}
+
+//对象
+table_item {
+
+  path = "/tables/:id"
+
+  get {
+
+    //返回对象类型：object表示单个对象
+    type = "object"
+
+    //参数绑定，input表示请求参数
+    bind {
+      tablename = "$input.id"
+    }
+
+    //接口返回SQL表达式
+    exec = <<SQL
+      SELECT * FROM pg_tables 
+      WHERE tablename = :tablename
+    SQL
+  }
+
+}
+
+```

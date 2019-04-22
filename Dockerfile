@@ -14,7 +14,9 @@ RUN mkdir -p /test && \
 RUN rm -rf /tmp/sqlrestful && \
    mkdir -p /sqlrestful
 
-#ENTRYPOINT ["sqlrestful"]
+ENTRYPOINT ["sqlrestful"]
 
-#WORKDIR /test
+WORKDIR /sqlrestful
+
+
 
