@@ -89,11 +89,6 @@ func putCacheData(cacheNames []string, cacheKey string, val interface{}) (bool, 
 		jsonData, _ := json.Marshal(val)
 		ret, err = redisDb.HSet(k, cacheKey, string(jsonData)).Result()
 		if err != nil {
-			fmt.Printf("putCacheData, k = %s, f = %s, value = %s, err: %s", k, cacheKey, string(jsonData), err.Error())
-		} else {
-			fmt.Printf("putCacheData, k = %s, f = %s, value = %s", k, cacheKey, string(jsonData))
-		}
-		if err != nil {
 			return false, err
 		}
 	}
@@ -107,13 +102,6 @@ func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
 			jsonData, _ := redisDb.HGet(k, cacheKey).Result()
 			var outData interface{}
 			err := json.Unmarshal([]byte(jsonData), &outData)
-
-			if err != nil {
-				fmt.Printf("getCacheData, k = %s, f = %s, value = %s, err: %s", k, cacheKey, jsonData, err.Error())
-			} else {
-				fmt.Printf("getCacheData, k = %s, f = %s, value = %s", k, cacheKey, jsonData)
-			}
-
 			if err != nil {
 				return nil, err
 			}
