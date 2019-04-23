@@ -204,13 +204,17 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		if m.Type == "object" {
+			tmp := out.([]map[string]interface{})
+			if len(tmp) == 0 {
+				return nil, errNoMacroFound
+			}
 			out = out.([]map[string]interface{})[0]
 		}
 	}
 
 	out, err = m.transform(out)
 	if err != nil {
-		return err.Error(), err
+		return nil, err
 	}
 
 	//设置缓存
