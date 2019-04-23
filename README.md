@@ -430,9 +430,9 @@ table_item {
 
 ## 计划功能
 
-[X] 实现Redis缓存配置，为restful接口实现缓存接口。
-[ ] 实现标准的swagger-ui文档接口(/v2/api-docs)。
-[ ] 加入oracle、db2等商用数据库支持。
-[ ] 完善在JS中发起JWT请求令牌请求其他接口。
-[ ] 编写JS转换器说明文档。
+ - [X] 实现Redis缓存配置，为restful接口实现缓存接口。
+ - [ ] 实现标准的swagger-ui文档接口(/v2/api-docs)。
+ - [ ] 加入oracle、db2等商用数据库支持。
+ - [ ] 完善在JS中发起JWT请求令牌请求其他接口。
+ - [ ] 编写JS转换器说明文档。
 
