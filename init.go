@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"io/ioutil"
 
 	_ "github.com/SAP/go-hdb/driver"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -43,6 +44,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/go-redis/redis"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 func init() {
@@ -82,10 +85,41 @@ func init() {
 		redisDb = redisClient
 	}
 
+	if *flagRSAPrivkey != "" {
+		if *flagJWTSecret == "" {
+			fmt.Println(color.RedString("[jwt] JWT 安全令牌不能为空！"))
+			os.Exit(0)
+		}
+
+		rsaKeyData, err := ioutil.ReadFile(*flagRSAPrivkey)
+		if err != nil {
+			fmt.Println(color.RedString("[jwt] 加载 JWT RSA 私钥文件出错：%s", err.Error()))
+			os.Exit(0)
+		}
+
+		tmpPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyData)
+		if err != nil {
+			fmt.Println(color.RedString("[jwt] JWT RSA 私钥格式错误：%s", err.Error()))
+			os.Exit(0)
+		}
+
+		if *flagJWTExpires < int(10) {
+			fmt.Println(color.RedString("[jwt] JWT 令牌有效期必须大于10秒！"))
+			os.Exit(0)
+		} 
+
+		jwtRSAPrivkey = tmpPrivateKey
+		jwtSecret = *flagJWTSecret
+		jwtExpires = *flagJWTExpires
+
+	} else {
+		fmt.Println(color.RedString("[jwt] JWT 安全请求方式未启用！"))
+	}
+
 	{
 		manager, err := NewManager(*flagAPIFile)
 		if err != nil {
-			fmt.Println(color.RedString("(%s)", err.Error()))
+			fmt.Println(color.RedString("HCL配置错误: %s", err.Error()))
 			os.Exit(0)
 		}
 		macrosManager = manager

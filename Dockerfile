@@ -9,7 +9,7 @@ RUN cd /tmp/sqlrestful && \
 RUN cp -f /tmp/sqlrestful/sqlrestful /usr/local/bin
 
 RUN mkdir -p /test && \
-    cp /tmp/sqlrestful/test.hcl /test/ 
+    cp /tmp/sqlrestful/test.hcl /test/
 
 RUN rm -rf /tmp/sqlrestful && \
    mkdir -p /sqlrestful
@@ -17,6 +17,4 @@ RUN rm -rf /tmp/sqlrestful && \
 ENTRYPOINT ["sqlrestful"]
 
 WORKDIR /sqlrestful
-
-
 

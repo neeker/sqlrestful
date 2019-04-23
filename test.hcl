@@ -13,6 +13,20 @@ tables {
       WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%';
     SQL
 
+    //请求验证
+    authorizer = <<JS
+    (function(){
+      response = fetch_api("http://test.snz1.cn:8090/xeai/actived_orgs", {
+        method: 'GET'
+      })
+      if (response.statusCode != 200) {
+        return false
+      }
+      log(response.body)
+      return true
+    })()
+    JS
+
     //输入参数绑定
     bind {
       offset = "$input.offset"
@@ -55,8 +69,6 @@ table_item {
     cache {
       //返回并设置缓存
       put = ["test.table"]
-      //清除缓存test.tables
-      evit = ["test.tables"]
     }
 
     //接口返回SQL表达式
@@ -64,6 +76,23 @@ table_item {
       SELECT * FROM pg_tables 
       WHERE tablename = :tablename
     SQL
+
+    //返回转换
+    transformer = <<JS
+    (function(){
+      // $result 为函数输入参数
+      $new_result = $result;
+      response = fetch_api("http://test.snz1.cn:8090/xeai/users/admin", {
+        method: 'GET'
+      })
+      
+      if (response.statusCode == 200) {
+        $new_result.body = JSON.parse(response.body).data
+      }
+      return $new_result
+    })()
+    JS
+
   }
 
 }

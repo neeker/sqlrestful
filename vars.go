@@ -27,6 +27,7 @@
 package main
 
 import (
+	"crypto/rsa"
 	"errors"
 	"flag"
 	"runtime"
@@ -42,12 +43,16 @@ var (
 	flagRESTListenAddr = flag.String("port", ":80", "HTTP监听端口")
 	flagWorkers        = flag.Int("workers", runtime.NumCPU(), "工作线程数量")
 	flagSQLSeparator   = flag.String("sep", `---\\--`, "SQL分隔符")
+	flagRSAPrivkey     = flag.String("jwt-keyfile", "./app.pem", "RSA私钥文件（PEM格式）")
+	flagJWTSecret      = flag.String("jwt-secret", "", "JWT安全令牌")
+	flagJWTExpires     = flag.Int("jwt-expires", 1800, "JWT安全令牌")
 )
 
 var (
 	errNoMacroFound       = errors.New("资源不存在！")
 	errValidationError    = errors.New("校验出错了！")
-	errAuthorizationError = errors.New("验证失败了！")
+	errAuthorizationError = errors.New("用户未登录！")
+	errAccessDenyError    = errors.New("无权访问！")
 )
 
 var (
@@ -55,12 +60,16 @@ var (
 		errNoMacroFound:       404,
 		errValidationError:    422,
 		errAuthorizationError: 401,
+		errAccessDenyError:    403,
 	}
 )
 
 var (
 	macrosManager *Manager
 	redisDb       *redis.Client
+	jwtRSAPrivkey *rsa.PrivateKey
+	jwtSecret     string
+	jwtExpires    int
 )
 
 const (

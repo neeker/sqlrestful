@@ -29,10 +29,23 @@ package main
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
 	"gopkg.in/resty.v1"
+	"github.com/dgrijalva/jwt-go"
 )
+
+
+// genJWTRequestToken
+func genJWTRequestToken() (string, error) {
+	claims := &jwt.StandardClaims {
+    ExpiresAt: time.Now().Unix() + int64(jwtExpires),
+    Issuer:   jwtSecret,
+	}
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return jwtToken.SignedString(jwtRSAPrivkey)
+}
 
 // initJSVM - creates a new javascript virtual machine
 func initJSVM(ctx map[string]interface{}) *goja.Runtime {
@@ -41,6 +54,8 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 		vm.Set(k, v)
 	}
 	vm.Set("fetch", jsFetchfunc)
+	vm.Set("fetch_url", jsFetchfunc)
+	vm.Set("fetch_api", jsJWTFetchfunc)
 	vm.Set("log", log.Println)
 	return vm
 }
@@ -72,7 +87,6 @@ func jsFetchfunc(url string, options ...map[string]interface{}) (map[string]inte
 		body, _ = option["body"]
 	}
 
-	//TODO 在这里注入JWT令牌
 	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
 	if err != nil {
 		return nil, err
@@ -91,3 +105,59 @@ func jsFetchfunc(url string, options ...map[string]interface{}) (map[string]inte
 		"body":       string(resp.Body()),
 	}, nil
 }
+
+func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]interface{}, error) {
+	var option map[string]interface{}
+	var method string
+	var headers map[string]string
+	var body interface{}
+
+	if len(options) > 0 {
+		option = options[0]
+	}
+
+	if nil != option["method"] {
+		method, _ = option["method"].(string)
+	}
+
+	if nil != option["headers"] {
+		hdrs, _ := option["headers"].(map[string]interface{})
+		headers = make(map[string]string)
+		for k, v := range hdrs {
+			headers[k], _ = v.(string)
+		}
+	}
+
+	requestToken, err := genJWTRequestToken()
+
+	if err == nil {
+		if headers == nil {
+			headers = make(map[string]string)
+		}
+		headers["Authorization"] = "Bearer " + requestToken
+	}
+	
+	if nil != option["body"] {
+		body, _ = option["body"]
+	}
+
+	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
+	if err != nil {
+		return nil, err
+	}
+
+	rspHdrs := resp.Header()
+	rspHdrsNormalized := map[string]string{}
+	for k, v := range rspHdrs {
+		rspHdrsNormalized[strings.ToLower(k)] = v[0]
+	}
+
+	return map[string]interface{}{
+		"status":     resp.Status(),
+		"statusCode": resp.StatusCode(),
+		"headers":    rspHdrsNormalized,
+		"body":       string(resp.Body()),
+	}, nil
+
+}
+
