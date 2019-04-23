@@ -35,11 +35,16 @@ import (
 
 func main() {
 	fmt.Println(color.MagentaString(serverBrand))
-	fmt.Printf("  Version: %s \n", color.GreenString(serverVersion))
-	fmt.Printf("  Driver: %s \n", color.GreenString(*flagDBDriver))
-	fmt.Printf("  DSN: %s \n", color.GreenString(*flagDBDSN))
-	fmt.Printf("  Workers Count: %s \n", color.GreenString(strconv.Itoa(*flagWorkers)))
-	fmt.Printf("  Listen Address: %s \n", color.GreenString(*flagRESTListenAddr))
+	fmt.Printf("  版本: %s \n", color.GreenString(serverVersion))
+	fmt.Printf("  驱动: %s \n", color.GreenString(*flagDBDriver))
+	fmt.Printf("  连接: %s \n", color.GreenString(*flagDBDSN))
+	fmt.Printf("  线程: %s \n", color.GreenString(strconv.Itoa(*flagWorkers)))
+	fmt.Printf("  监听: %s \n", color.GreenString(*flagRESTListenAddr))
+	if *flagRedisURL == "" {
+		fmt.Printf("  缓存: %s \n", color.RedString("未配置Redis连接"))
+	} else {
+		fmt.Printf("  缓存: %s \n", color.GreenString(*flagRedisURL))
+	}
 
 	err := make(chan error)
 

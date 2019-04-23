@@ -72,6 +72,7 @@ func jsFetchfunc(url string, options ...map[string]interface{}) (map[string]inte
 		body, _ = option["body"]
 	}
 
+	//TODO 在这里注入JWT令牌
 	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
 	if err != nil {
 		return nil, err

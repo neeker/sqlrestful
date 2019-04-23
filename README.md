@@ -34,9 +34,9 @@
 
 ### 什么是HCL配置语言
 
-最终选择HCL语言作为本工具服务配置语言，具体参见[HCL官网](https://github.com/hashicorp/hcl)。
+HCL配置语言请参见[HCL官网](https://github.com/hashicorp/hcl)。
 
-HCL是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashicorp.com/)实现的配置语言，
+它是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashicorp.com/)实现的配置语言，
 它吸收了`JSON`与`YAML`及一些脚本语言的特性，自身兼容`JSON`语法：
 
  - 单行注释以#或开头//
@@ -64,12 +64,12 @@ HCL是大名鼎鼎的云基础架构自动化工具[hashicorp](https://www.hashi
 
 
 ```
-      service {
-          key = "value"
-      }
-      service {
-          key = "value"
-      }
+    service {
+        key = "value"
+    }
+    service {
+        key = "value"
+    }
 ```
 
 ### SQLRestful的配置结构
@@ -100,6 +100,14 @@ macro_define {
       return true
     })()
   JS
+
+  //Redis缓存配置（无redis连接配置时无效）
+  cache {
+    //缓存名称列表(HSET)：使用input作为field主键
+    put = ["cache_name"]
+    //移除缓存(HSET)：删除HSET主键
+    evit = ["cache_name"]
+  }
 
   //SQL执行变量绑定
   bind {
@@ -267,16 +275,70 @@ object_items {
 docker run -ti --rm snz1/sqlrestful --help
 ```
 
+参数说明：
+
+```
+Usage of sqlrestful:
+  -config string
+        缺省的配置文件路径（多个文件使用逗号分隔） (default "./*.hcl")
+  -driver string
+        SQL类型 (default "postgres")
+  -redis  string
+        Redis连接：redis://:password@<redis host>:6379/<dbindex>
+  -dsn string
+        SQL数据源配置 (default "user=postgres password= dbname=postgres sslmode=disable connect_timeout=3")
+  -hdb.protocol.trace
+        enabling hdb protocol trace
+  -hdb.sqlTrace
+        enabling hdb sql trace
+  -port string
+        HTTP监听端口 (default ":80")
+  -sep string
+        SQL分隔符 (default "---\\\\--")
+  -workers int
+        工作线程数量 (default 1)
+```
+
 ### 运行服务
+
+**运行指定目录下的配置**
 
 ```
 docker run -ti --rm snz1/sqlrestful \
   -v /sqlrestful:/sqlrestful \
+  -p 80:80 \
   -driver "postgres" \
-  -dsn "user=<dbuser> password=<password> dbname=<dbname> sslmode=disable connect_timeout=3 host=<db host>" \
+  -dsn "user=<dbuser> password=<password> dbname=<dbname> sslmode=disable connect_timeout=3 host=<db host>"
 ```
 
-> 此处以`PostgresQL`数据库为例，你也可以使用`mysql`连接，参见：<>
+**运行示例目录的配置**
+
+```
+docker run -ti --rm snz1/sqlrestful \
+  -p 80:80 \
+  -driver "postgres" \
+  -dsn "postgresql://<dbuser>:<dbpassword>@<dbhost>:<dbport>/<dbname>?sslmode=disable"
+  -config "/test/*.hcl"
+```
+
+### 数据库驱动及连接串
+
+| 数据库 | 连接串 |
+---------| ------ |
+| `mysql`| `usrname:password@tcp(server:port)/dbname?option1=value1&...`|
+| `postgres`| `postgresql://username:password@server:port/dbname?option1=value1`|
+|           | `user=<dbuser> password=<password> dbname=<dbname> sslmode=disable connect_timeout=3 host=<db host>` |
+| `sqlite3`| `/path/to/db.sqlite?option1=value1`|
+| `sqlserver` | `sqlserver://username:password@host/instance?param1=value&param2=value` |
+|             | `sqlserver://username:password@host:port?param1=value&param2=value`|
+|             | `sqlserver://sa@localhost/SQLExpress?database=master&connection+timeout=30`|
+| `mssql` | `server=localhost\\SQLExpress;user id=sa;database=master;app name=MyAppName`|
+|         | `server=localhost;user id=sa;database=master;app name=MyAppName`|
+|         | `odbc:server=localhost\\SQLExpress;user id=sa;database=master;app name=MyAppName` |
+|         | `odbc:server=localhost;user id=sa;database=master;app name=MyAppName` |
+| `hdb` (SAP HANA) |   `hdb://user:password@host:port` |
+| `clickhouse` (Yandex ClickHouse) |   `tcp://host1:9000?username=user&password=qwerty&database=clicks&read_timeout=10&write_timeout=20&alt_hosts=host2:9000,host3:9000` |
+
 
 ### 自定义镜像
 
@@ -315,6 +377,12 @@ tables {
       limit = "$input.limit"
     }
 
+    //缓存
+    cache {
+      //返回并设置缓存
+      put = [ "test.tables" ]
+    }
+
     //接口返回SQL表达式
     exec = <<SQL
       SELECT * FROM pg_tables 
@@ -341,6 +409,14 @@ table_item {
       tablename = "$input.id"
     }
 
+    //缓存配置
+    cache {
+      //返回并设置缓存
+      put = ["test.table"]
+      //清除缓存test.tables
+      evit = ["test.tables"]
+    }
+
     //接口返回SQL表达式
     exec = <<SQL
       SELECT * FROM pg_tables 
@@ -351,3 +427,12 @@ table_item {
 }
 
 ```
+
+## 计划功能
+
+[X] 实现Redis缓存配置，为restful接口实现缓存接口。
+[ ] 实现标准的swagger-ui文档接口(/v2/api-docs)。
+[ ] 加入oracle、db2等商用数据库支持。
+[ ] 完善在JS中发起JWT请求令牌请求其他接口。
+[ ] 编写JS转换器说明文档。
+

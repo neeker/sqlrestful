@@ -34,6 +34,14 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Cache 缓存配置
+type Cache struct {
+	Put  []string
+	Evit []string
+	Idle uint32
+	Live uint32
+}
+
 // Macro - a macro configuration
 type Macro struct {
 	Methods     []string
@@ -55,14 +63,68 @@ type Macro struct {
 	Put    *Macro
 	Patch  *Macro
 	Delete *Macro
+	Cache  *Cache
 
 	name         string
 	manager      *Manager
 	methodMacros map[string]*Macro
 }
 
+func getCacheKey(input map[string]interface{}) string {
+	if len(input) == 0 {
+		return ""
+	}
+	ret, _ := json.Marshal(input)
+	return string(ret)
+}
+
+// Put cache data
+func putCacheData(cacheNames []string, cacheKey string, val interface{}) (bool, error) {
+	var (
+		ret bool
+		err error
+	)
+	ret = false
+	for _, k := range cacheNames {
+		jsonData, _ := json.Marshal(val)
+		ret, err = redisDb.HSet(k, cacheKey, string(jsonData)).Result()
+		if err != nil {
+			fmt.Printf("putCacheData, k = %s, f = %s, value = %s, err: %s", k, cacheKey, string(jsonData), err.Error())
+		} else {
+			fmt.Printf("putCacheData, k = %s, f = %s, value = %s", k, cacheKey, string(jsonData))
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+	return ret, err
+}
+
+// Get cache data
+func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
+	for _, k := range cacheNames {
+		if redisDb.HExists(k, cacheKey).Val() {
+			jsonData, _ := redisDb.HGet(k, cacheKey).Result()
+			var outData interface{}
+			err := json.Unmarshal([]byte(jsonData), &outData)
+
+			if err != nil {
+				fmt.Printf("getCacheData, k = %s, f = %s, value = %s, err: %s", k, cacheKey, jsonData, err.Error())
+			} else {
+				fmt.Printf("getCacheData, k = %s, f = %s, value = %s", k, cacheKey, jsonData)
+			}
+
+			if err != nil {
+				return nil, err
+			}
+			return outData, nil
+		}
+	}
+	return nil, nil
+}
+
 // Call - executes the macro
-func (m *Macro) Call(input map[string]interface{}) (interface{}, error) {
+func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface{}) (interface{}, error) {
 	ok, err := m.authorize(input)
 	if err != nil {
 		return err.Error(), err
@@ -79,14 +141,31 @@ func (m *Macro) Call(input map[string]interface{}) (interface{}, error) {
 		return invalid, errValidationError
 	}
 
-	if err := m.runIncludes(input); err != nil {
-		return err.Error(), err
+	var (
+		out      interface{}
+		cacheKey string
+	)
+
+	//获取缓存
+	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
+		cacheKey = getCacheKey(inputKey)
+		if cacheKey != "" && len(m.Cache.Put) > 0 {
+			out, err = getCacheData(m.Cache.Put, cacheKey)
+			if err != nil {
+				return nil, err
+			}
+			if out != nil {
+				return out, nil
+			}
+		}
 	}
 
-	var out interface{}
+	if err := m.runIncludes(input, inputKey); err != nil {
+		return nil, err
+	}
 
 	if len(m.Aggregate) > 0 {
-		out, err = m.aggregate(input)
+		out, err = m.aggregate(input, inputKey)
 		if err != nil {
 			return err.Error(), err
 		}
@@ -121,6 +200,14 @@ func (m *Macro) Call(input map[string]interface{}) (interface{}, error) {
 		}
 
 		pageRet["data"] = out
+
+		//设置缓存
+		if redisDb != nil && m.Cache != nil && len(m.Cache.Put) > 0 {
+			if cacheKey != "" && len(m.Cache.Put) > 0 {
+				putCacheData(m.Cache.Put, cacheKey, pageRet)
+			}
+		}
+
 		return pageRet, nil
 	} else {
 		out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
@@ -136,6 +223,19 @@ func (m *Macro) Call(input map[string]interface{}) (interface{}, error) {
 	out, err = m.transform(out)
 	if err != nil {
 		return err.Error(), err
+	}
+
+	//设置缓存
+	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
+		if cacheKey != "" && len(m.Cache.Put) > 0 {
+			putCacheData(m.Cache.Put, cacheKey, out)
+		}
+
+		if len(m.Cache.Evit) > 0 {
+			for _, k := range m.Cache.Evit {
+				redisDb.Del(k)
+			}
+		}
 	}
 
 	return out, nil
@@ -308,15 +408,15 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 }
 
 // aggregate - run the aggregators
-func (m *Macro) aggregate(input map[string]interface{}) (map[string]interface{}, error) {
+func (m *Macro) aggregate(input map[string]interface{}, inputKey map[string]interface{}) (map[string]interface{}, error) {
 	ret := map[string]interface{}{}
 	for _, k := range m.Aggregate {
 		macro := m.manager.Get(k)
 		if nil == macro {
-			err := fmt.Errorf("unknown macro %s", k)
+			err := fmt.Errorf("不存在的宏： %s", k)
 			return nil, err
 		}
-		out, err := macro.Call(input)
+		out, err := macro.Call(input, inputKey)
 		if err != nil {
 			return nil, err
 		}
@@ -369,13 +469,13 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 }
 
 // runIncludes - run the include function
-func (m *Macro) runIncludes(input map[string]interface{}) error {
+func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]interface{}) error {
 	for _, name := range m.Include {
 		macro := m.manager.Get(name)
 		if nil == macro {
-			return fmt.Errorf("macro %s not found", name)
+			return fmt.Errorf("宏%s不存在！", name)
 		}
-		_, err := macro.Call(input)
+		_, err := macro.Call(input, inputKey)
 		if err != nil {
 			return err
 		}

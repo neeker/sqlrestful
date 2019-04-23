@@ -51,7 +51,7 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 }
 
 //routeApiDocs
-func routeApiDocs(c echo.Context) error {
+func routeAPIDocs(c echo.Context) error {
 	return c.JSON(200, map[string]interface{}{
 		"code":    0,
 		"message": "操作成功！",
@@ -66,10 +66,13 @@ func routeExecMacro(c echo.Context) error {
 	input := make(map[string]interface{})
 	body := make(map[string]interface{})
 
+	keyInput := make(map[string]interface{})
+
 	c.Bind(&body)
 
 	for k := range c.QueryParams() {
 		input[k] = c.QueryParam(k)
+		keyInput[k] = c.QueryParam(k)
 	}
 
 	for k, v := range body {
@@ -78,6 +81,7 @@ func routeExecMacro(c echo.Context) error {
 
 	for _, k := range c.ParamNames() {
 		input[k] = c.Param(k)
+		keyInput[k] = c.Param(k)
 	}
 
 	headers := c.Request().Header
@@ -85,7 +89,7 @@ func routeExecMacro(c echo.Context) error {
 		input["http_"+strings.Replace(strings.ToLower(k), "-", "_", -1)] = v[0]
 	}
 
-	out, err := macro.Call(input)
+	out, err := macro.Call(input, keyInput)
 
 	if err != nil {
 		code := errStatusCodeMap[err]

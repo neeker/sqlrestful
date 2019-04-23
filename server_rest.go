@@ -47,7 +47,7 @@ func initRestfulServer() error {
 
 	e.GET("/", routeIndex)
 	e.GET("/health", routeHealth)
-	e.GET("/v2/api-docs", routeApiDocs)
+	e.GET("/v2/api-docs", routeAPIDocs)
 
 	for _, macro := range macrosManager.List() {
 		if (len(macro.Exec) > 0) {

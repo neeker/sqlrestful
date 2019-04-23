@@ -30,12 +30,15 @@ import (
 	"errors"
 	"flag"
 	"runtime"
+
+	"github.com/go-redis/redis"
 )
 
 var (
 	flagDBDriver       = flag.String("driver", "postgres", "SQL类型")
 	flagDBDSN          = flag.String("dsn", "user=postgres password= dbname=postgres sslmode=disable connect_timeout=3", "SQL数据源配置")
 	flagAPIFile        = flag.String("config", "./*.hcl", "缺省的配置文件路径（多个文件使用逗号分隔）")
+	flagRedisURL       = flag.String("redis", "", "Redis连接：redis://:password@<redis host>:6379/0")
 	flagRESTListenAddr = flag.String("port", ":80", "HTTP监听端口")
 	flagWorkers        = flag.Int("workers", runtime.NumCPU(), "工作线程数量")
 	flagSQLSeparator   = flag.String("sep", `---\\--`, "SQL分隔符")
@@ -57,10 +60,11 @@ var (
 
 var (
 	macrosManager *Manager
+	redisDb       *redis.Client
 )
 
 const (
-	serverVersion = "v0.1"
+	serverVersion = "v0.2"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _

@@ -41,6 +41,8 @@ import (
 
 	"github.com/alash3al/go-color"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/go-redis/redis"
 )
 
 func init() {
@@ -56,10 +58,28 @@ func init() {
 	{
 		tstconn, err := sqlx.Connect(*flagDBDriver, *flagDBDSN)
 		if err != nil {
-			fmt.Println(color.RedString("[%s] %s - connection error - (%s)", *flagDBDriver, *flagDBDSN, err.Error()))
+			fmt.Println(color.RedString("[%s] %s 连接出错：%s", *flagDBDriver, *flagDBDSN, err.Error()))
 			os.Exit(0)
 		}
 		tstconn.Close()
+	}
+
+	//https://github.com/go-redis/redis
+	if *flagRedisURL != "" {
+		redisOpts, err := redis.ParseURL(*flagRedisURL)
+		if err != nil {
+			fmt.Println(color.RedString("[redis] %s 不正确：%s", *flagRedisURL, err.Error()))
+			os.Exit(0)
+		}
+
+		redisClient := redis.NewClient(redisOpts);
+		err = redisClient.Ping().Err()
+		
+		if err != nil {
+			fmt.Println(color.RedString("[redis] %s 连接出错：%s", *flagRedisURL, err.Error()))
+			os.Exit(0)
+		}
+		redisDb = redisClient
 	}
 
 	{

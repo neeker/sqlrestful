@@ -19,6 +19,12 @@ tables {
       limit = "$input.limit"
     }
 
+    //缓存
+    cache {
+      //返回并设置缓存
+      put = ["test.tables"]
+    }
+
     //接口返回SQL表达式
     exec = <<SQL
       SELECT * FROM pg_tables 
@@ -43,6 +49,14 @@ table_item {
     //参数绑定，input表示请求参数
     bind {
       tablename = "$input.id"
+    }
+
+    //缓存配置
+    cache {
+      //返回并设置缓存
+      put = ["test.table"]
+      //清除缓存test.tables
+      evit = ["test.tables"]
     }
 
     //接口返回SQL表达式
