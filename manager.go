@@ -170,7 +170,9 @@ func (m *Manager) List() (ret []*Macro) {
 	m.RLock()
 	defer m.RUnlock()
 	for _, v := range m.macros {
-		ret = append(ret, v)
+		if !strings.HasPrefix(v.name, "_") {
+			ret = append(ret, v)
+		}
 	}
 	return ret
 }
