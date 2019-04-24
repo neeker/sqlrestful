@@ -58,7 +58,7 @@ func init() {
 	flag.Parse()
 	runtime.GOMAXPROCS(*flagWorkers)
 
-	{
+	if *flagDBDriver != "" && *flagDBDSN != "" {
 		tstconn, err := sqlx.Connect(*flagDBDriver, *flagDBDSN)
 		if err != nil {
 			fmt.Println(color.RedString("[%s] %s 连接出错：%s", *flagDBDriver, *flagDBDSN, err.Error()))

@@ -36,8 +36,8 @@ import (
 )
 
 var (
-	flagDBDriver       = flag.String("driver", "postgres", "SQL类型")
-	flagDBDSN          = flag.String("dsn", "user=postgres password= dbname=postgres sslmode=disable connect_timeout=3", "SQL数据源配置")
+	flagDBDriver       = flag.String("driver", "", "SQL类型")
+	flagDBDSN          = flag.String("dsn", "", "SQL数据源配置")
 	flagAPIFile        = flag.String("config", "./*.hcl", "缺省的配置文件路径（多个文件使用逗号分隔）")
 	flagRedisURL       = flag.String("redis", "", "Redis连接：redis://:password@<redis host>:6379/0")
 	flagRESTListenAddr = flag.String("port", ":80", "HTTP监听端口")
@@ -46,6 +46,12 @@ var (
 	flagRSAPrivkey     = flag.String("jwt-keyfile", "./app.pem", "RSA私钥文件（PEM格式）")
 	flagJWTSecret      = flag.String("jwt-secret", "", "JWT安全令牌")
 	flagJWTExpires     = flag.Int("jwt-expires", 1800, "JWT安全令牌")
+	flagName           = flag.String("name", "SQLRestful", "服务名称")
+	flagBasePath       = flag.String("base", "/", "服务地址")
+	flagDescription    = flag.String("desc", "SQLRestful，您的云原生应用生产力工具！", "功能描述")
+	flagVersion        = flag.String("ver", "1.0", "实现版本")
+	flagAuthor         = flag.String("author", "痞子飞猪", "维护人员")
+	flagEmail          = flag.String("email", "13317312768@qq.com", "联系邮箱")
 )
 
 var (
@@ -73,7 +79,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.3"
+	serverVersion = "v0.4"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _

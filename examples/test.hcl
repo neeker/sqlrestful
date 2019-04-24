@@ -7,6 +7,12 @@ tables {
   //获取对象集数据
   get {
 
+    //
+    tag = ["测试接口"]
+
+    //实现概要
+    summary = "获取数据库中的数据表"
+
     //返回记录总数，加了此定义则返回分页对象(强制type=page)
     total = <<SQL
       SELECT count(tablename) FROM pg_tables 
@@ -16,13 +22,12 @@ tables {
     //请求验证
     authorizer = <<JS
     (function(){
-      response = fetch_api("http://test.snz1.cn:8090/xeai/actived_orgs", {
-        method: 'GET'
-      })
-      if (response.statusCode != 200) {
-        return false
+      
+      //获取请求头“X-Credential-Userid”内容，通过网关请求的用户身份ID
+      var user_id = $input.http_x_credential_userid
+      if (user_id === undefined || user_id === "") {
+        //return false
       }
-      log(response.body)
       return true
     })()
     JS
@@ -82,17 +87,45 @@ table_item {
     (function(){
       // $result 为函数输入参数
       $new_result = $result;
-      response = fetch_api("http://test.snz1.cn:8090/xeai/users/admin", {
+      response = call_api("http://test.snz1.cn:8090/xeai/users/admin", {
         method: 'GET'
       })
-      
-      if (response.statusCode == 200) {
-        $new_result.body = JSON.parse(response.body).data
+      if (response.code != 0) {
+        throw response.message
+      } else {
+        $new_result.user = response.data
+        $new_result.cache_date = new Date();
       }
       return $new_result
     })()
     JS
 
+  }
+
+}
+
+//JS实现接口
+test_js {
+
+  //接口地址
+  path = "/users/:uid"
+
+  get {
+    //使用JavaScript实现
+    impl = "js"
+
+    //实现脚本
+    exec = <<JS
+    (function(){
+      // $input 为函数输入参数
+      return call_api("http://test.snz1.cn:8090/xeai/users/" + $input.uid, {
+        method: 'GET'
+      })
+    })()
+    JS
+
+    //不封装返回类型
+    ret = "origin"
   }
 
 }

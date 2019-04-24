@@ -29,6 +29,7 @@ package main
 import (
 	"net/http"
 	"strings"
+	"encoding/json"
 
 	"github.com/labstack/echo"
 )
@@ -50,12 +51,211 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 	}))
 }
 
+func getMacroBindParams(macro *Macro)([]map[string]interface{}) {
+	ret := []map[string]interface{}{}
+	if len(macro.Bind) > 0 {
+		for k, v := range ret {
+			var desc []byte
+			desc, _ = json.Marshal(v)
+			ret = append(ret, map[string]interface{} {
+				"name": k,
+				"in": "query",
+				"description": string(desc),
+				"required": false,
+				"type": "string",
+			})
+		}
+	} else {
+		ret = append(ret, map[string]interface{} {
+			"name": "parameters",
+			"in": "query",
+			"description": "parameters",
+			"required": false,
+			"type": "object",
+		})
+	}
+	return ret;
+}
+
+//getTagsAndRestfulPaths
+func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{}) {
+	tagsMap := make(map[string]interface{})
+	pathsMap := make(map[string]interface{})
+
+	for _, macro := range macrosManager.List() {
+		for _, tag := range macro.Tags {
+			tagsMap[tag] = macro.name
+		}
+		apiPathMethods := make(map[string]interface{})
+		if len(macro.Exec) > 0 {
+			definedMethods := macro.Methods
+			if len(definedMethods) == 0 {
+				definedMethods = append(definedMethods, "GET")
+			}
+			for _, k := range definedMethods {
+				apiPathMethods[strings.ToLower(k)] = map[string]interface{} {
+					"tags": macro.Tags,
+					"summary": macro.Summary,
+					"operationId": macro.name,
+					"consumes": []string{ "application/json" },
+					"produces": []string{ "application/json;charset=UTF-8" },
+					"parameters": getMacroBindParams(macro),
+					"responses": map[string]interface{} {
+						"200": map[string]interface{} {
+							"description": "OK",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+						"401": map[string]interface{} {
+							"description": "Unauthorized",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+						"403": map[string]interface{} {
+							"description": "Forbidden",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+					},
+					"definitions": map[string]interface{} {
+						"result": map[string]interface{} {
+							"type": "object",
+							"properties": map[string]interface{} {
+								"code": map[string]interface{} {
+									"type": "integer",
+									"format": "int32",
+								},
+								"message": map[string]interface{} {
+									"type": "string",
+								},
+								"data": map[string]interface{} {
+									"type": "object",
+								},
+							},
+						},
+					},
+				}
+			}
+		} else {
+			for k, childm := range macro.methodMacros {
+				apiPathMethods[strings.ToLower(k)] = map[string]interface{} {
+					"tags": childm.Tags,
+					"summary": childm.Summary,
+					"operationId": childm.name,
+					"consumes": []string{ "application/json" },
+					"produces": []string{ "application/json;charset=UTF-8" },
+					"parameters": getMacroBindParams(childm),
+					"responses": map[string]interface{} {
+						"200": map[string]interface{} {
+							"description": "OK",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+						"401": map[string]interface{} {
+							"description": "Unauthorized",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+						"403": map[string]interface{} {
+							"description": "Forbidden",
+							"schema": map[string]interface{} {
+								"$ref": "#/definitions/result",
+							},
+						},
+					},
+					"definitions": map[string]interface{} {
+						"result": map[string]interface{} {
+							"type": "object",
+							"properties": map[string]interface{} {
+								"code": map[string]interface{} {
+									"type": "integer",
+									"format": "int32",
+								},
+								"message": map[string]interface{} {
+									"type": "string",
+								},
+								"data": map[string]interface{} {
+									"type": "object",
+								},
+							},
+						},
+					},
+				}
+			}
+		}
+
+		pathsMap[macro.Path] = apiPathMethods
+		
+	}
+
+	retmap := []map[string]interface{}{}
+
+	for k, v := range tagsMap {
+		retmap = append(retmap, map[string]interface{}{
+			"name": k,
+			"description": v,
+		})
+	}
+
+	return retmap, pathsMap
+}
+
 //routeApiDocs
 func routeAPIDocs(c echo.Context) error {
+  apiTags, apiPaths := getTagsAndRestfulPaths()
+	retdata := map[string]interface{} {
+		"swagger": "2.0",
+		"info": map[string]interface{} {
+			"description": *flagDescription,
+			"version": *flagVersion,
+			"title": *flagName,
+			"contact": map[string]interface{} {
+				"name": *flagAuthor,
+				"email": *flagEmail,
+			},
+		},
+		"host": "",
+		"basePath": *flagBasePath,
+		"tags": apiTags,
+		"paths": apiPaths,
+	}
+
+	return c.JSON(200, retdata)
+}
+
+//routeApiDocs
+func routeClearCaches(c echo.Context) error {
+
+	for _, macroName := range macrosManager.Names() {
+
+		macro := macrosManager.Get(macroName)
+
+		if macro.Cache != nil && len(macro.Cache.Put) > 0 {
+			if childm.Cache.Put != nil {
+				for _, k := range macro.Cache.Put {
+					redisDb.Del(k)
+				}
+			}
+		}
+
+		for _, childm := range macro.methodMacros {
+			if childm.Cache.Put != nil {
+				for _, k := range childm.Cache.Put {
+					redisDb.Del(k)
+				}
+			}
+		}
+
+	}
+
 	return c.JSON(200, map[string]interface{}{
 		"code":    0,
 		"message": "操作成功！",
-		"data":    echoServer.Routes(),
 	})
 }
 
@@ -102,9 +302,13 @@ func routeExecMacro(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(200, map[string]interface{}{
-		"code":    0,
-		"message": "操作成功！",
-		"data":    out,
-	})
+	if macro.Ret == "origin" {
+		return c.JSON(200, out)
+	} else {
+		return c.JSON(200, map[string]interface{}{
+			"code":    0,
+			"message": "操作成功！",
+			"data":    out,
+		})
+	}
 }

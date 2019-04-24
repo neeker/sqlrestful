@@ -44,6 +44,56 @@ type Manager struct {
 	sync.RWMutex
 }
 
+func initMacro(v *Macro) error {
+	if len(v.Total) > 0 {
+		v.Type = "page"
+	}
+
+	if v.Type == "" {
+		v.Type = "list"
+	} else {
+		v.Type = strings.ToLower(v.Type)
+	}
+
+	if v.Impl == "" {
+		v.Impl = "sql"
+	} else {
+		v.Impl = strings.ToLower(v.Impl)
+	}
+
+	if v.Impl != "js" {
+		v.Impl = "sql"
+	}
+
+	if v.Ret == "" {
+		v.Ret = "enclosed"
+	} else {
+		v.Ret = strings.ToLower(v.Ret)
+	}
+
+	if v.Ret != "origin" {
+		v.Ret = "enclosed"
+	}
+
+	switch {
+	case v.Type == "list":
+	case v.Type == "object":
+	case v.Type == "page":
+	default:
+		v.Type = "list"
+	}
+
+	if v.Summary == "" {
+		v.Summary = v.name
+	}
+
+	if len(v.Tags) == 0 {
+		v.Tags = append(v.Tags, v.name)
+	}
+
+	return nil
+}
+
 // NewManager - initialize a new manager
 func NewManager(configpath string) (*Manager, error) {
 	manager := new(Manager)
@@ -118,22 +168,12 @@ func NewManager(configpath string) (*Manager, error) {
 					v.Path = "/" + v.Path
 				}
 
-				if len(v.Total) > 0 {
-					v.Type = "page"
-				}
+				initMacro(v)
 
-				if v.Type == "" {
-					v.Type = "list"
-				} else {
-					v.Type = strings.ToLower(v.Type)
-				}
-
-				switch {
-				case v.Type == "list":
-				case v.Type == "object":
-				case v.Type == "page":
-				default:
-					v.Type = "list"
+				for k, childm := range v.methodMacros {
+					childm.manager = manager
+					childm.name = v.name + "_" + k
+					initMacro(childm)
 				}
 
 			}

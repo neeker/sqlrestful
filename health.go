@@ -36,14 +36,46 @@ import (
 func routeHealth(c echo.Context) error {
 	retcode := 0
 	errmsg := "运行正常！"
-	{
+
+	retdata := make(map[string]interface{})
+
+	if *flagDBDriver != "" && *flagDBDSN != "" {
 		tstconn, err := sqlx.Connect(*flagDBDriver, *flagDBDSN)
 		if err != nil {
 			retcode = 500
 			errmsg = err.Error()
+			retdata["database"] = "down"
+		} else {
+			retdata["database"] = "up"
 		}
+		
 		tstconn.Close()
+	} else {
+		retdata["database"] = "disabled"
 	}
+
+	if redisDb != nil {
+		err := redisDb.Ping().Err()
+		if err != nil {
+			retcode = 500
+			errmsg = err.Error()
+			retdata["redis"] = "down"
+		} else {
+			retdata["redis"] = "up"
+		}
+	} else {
+		retdata["redis"] = "disabled"
+	}
+
+	if *flagRSAPrivkey != "" {
+		retdata["jwt"] = "enabled"
+	} else {
+		retdata["jwt"] = "disabled"
+	}
+
+	retdata["routes"] = echoServer.Routes()
+
+	retdata["headers"] = c.Request().Header
 
 	respcode := 200
 	if (retcode != 0) {
@@ -53,5 +85,6 @@ func routeHealth(c echo.Context) error {
 	return c.JSON(respcode, map[string]interface{}{
 		"code": retcode,
 		"message": errmsg,
+		"data": retdata,
 	})
 }

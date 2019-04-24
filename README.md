@@ -32,7 +32,7 @@
 
 ## 基础概念
 
-### 什么是HCL配置语言
+**什么是HCL配置语言**
 
 HCL配置语言请参见[HCL官网](https://github.com/hashicorp/hcl)。
 
@@ -72,14 +72,26 @@ HCL配置语言请参见[HCL官网](https://github.com/hashicorp/hcl)。
     }
 ```
 
+## 开发说明
+
 ### SQLRestful的配置结构
 
-**基本宏定义**
+SQLRestful采用HCL语言配合SQL、JavaScript脚本开发微服务接口。
+
+> 示例参见测试配置文件([test.hcl](https://github.com/neeker/sqlrestful/blob/master/test.hcl))
+
+#### 基本宏定义
 
 ```hcl
 
 //用于restful接口中的get、post、put、patch、delete等属性定义
 macro_define {
+
+  //服务接口的分类标签（可忽略）
+  tag = ["标签"]
+
+  //摘要描述（可忽略）
+  summary = ""
 
   //引入其他宏定义
   include = ["_boot"]
@@ -109,9 +121,13 @@ macro_define {
     evit = ["cache_name"]
   }
 
-  //SQL执行变量绑定
+
+  //表示total与exec的脚本类型，默认为sql
+  impl = "sql"
+
+  //SQL执行变量绑定，impl = "sql"时生效
   bind {
-    sql_param1 = "$input.id" //也可以使用JS转换
+    sql_param1 = "$input.id"     //JS脚本
     sql_offset = "$input.offset" //默认为0
     sql_limit = "$input.limit"   //默认为0
   }
@@ -138,11 +154,14 @@ macro_define {
     })()
   JS
 
+  //返回数据处理，enclosed表示接口返回信封封装（默认），origin表示原样返回（不封装）
+  ret = "enclosed"
+
 }
 
 ```
 
-**Restful对象集接口定义**
+#### Restful对象集接口定义
 
 ```hcl
 
@@ -151,6 +170,12 @@ object_items {
 
   //接口地址，省略时使用接口定义名称作为接口地址
   path = "/path/of/object_items"
+
+  //服务接口的分类标签（可忽略）
+  tag = ["标签"]
+
+  //摘要描述（可忽略）
+  summary = ""
 
   //GET请求方法宏定义
   get {
@@ -199,7 +224,7 @@ object_items {
 
 ```
 
-**Restful对象接口定义**
+#### Restful对象接口定义
 
 ```hcl
 
@@ -208,6 +233,12 @@ object_items {
 
   //接口地址，路径ID使用“:”作为前缀
   path = "/path/of/object_items/:id"
+
+  //服务接口的分类标签（可忽略）
+  tag = ["标签"]
+
+  //摘要描述（可忽略）
+  summary = ""
 
   //GET请求方法宏定义
   get {
@@ -238,10 +269,9 @@ object_items {
 
 ```
 
+** 数据应答格式 **
 
-### 应答格式
-
-应答采用信奉封装的JSON数据格式，基本格式如下：
+默认情况接口应答采用信奉封装的JSON数据格式，基本格式如下：
 
 ```
 {
@@ -267,7 +297,160 @@ object_items {
 }
 ```
 
-## 使用方法
+> 你可以在接口配置上添加'ret="origin"'来禁用返回封装。
+
+#### SQL参数绑定说明
+
+如果使用`sql`作为接口实现语言时，可以通过`bind`宏来配置SQL参数。其中的属性定义值则是JS表达式（也可以是JS表达式）。
+
+最终在SQL中可以使用“:变量名”的绑定参数，如下所示：
+
+```
+bind {
+  name_arg = "'%' + $input.name + '%'"
+  end_arg = <<JS
+    (function(){
+      return '%' + $input.name
+    })()
+  JS
+}
+
+exec = <<SQL
+  select * from tbname where name like :name_arg or name like :end_arg
+SQL
+```
+
+> `$input`表示请求输入参数。
+
+### JavaScript脚本
+
+在SQLRestful的主要实现由SQL与JavaScript完成，其中JavaScript负责提供与其他微服务接口的交互、SQL返回结果的转换能力。
+
+JavaScript主要用于参数转换（`bind`宏），身份验证实现（`authorizer`宏），应答转换（`transformer`宏）实现，它支持
+完整的 ECMAScript 5.1 规范（由 [goja](https://github.com/dop251/goja) 提供实现支持）。
+
+参数转换（`bind`宏），身份验证实现（`authorizer`宏）的JS脚本可以通过变量`$input`可以获取到请求输入参数：
+
+* `$result`表示请求参数JSON对象
+* 请求头中的参数通过`http_`开头+头名称（全部小写，`-`被替换成`_`），如有一个请求头叫`x-test-mm`，则通过以下表达式拿到值：
+
+```
+$input.http_x_test_mm
+```
+
+应答转换（`transformer`宏）的脚本通过变量`$result`可以获取到`exec`宏返回的原始应答JSON对象：
+
+```
+transformer = <<JS
+(function(){
+$new_result = $result
+$new_result.trans_test = "13456"
+return $new_result  
+})()
+JS
+```
+
+SQLRestful为JS脚本内置了两个默认的HTTP请求函数和一个控制台日志输出函数：
+
+  - fetch
+  - call_api
+  - log
+
+#### fetch 函数说明
+
+**函数原型**
+
+```
+function fetch(URL, {
+  method: "HTTP METHOD", //请求方法，如GET、POST、PUT
+  headers: { //请求头
+    ...
+  },
+  body: ... //请求体，可以是JSON或字符串。
+})
+```
+
+**返回结果**
+
+```
+{
+  "status":     "应答状态文本",
+  "statusCode": "HTTP应答码",
+  "headers":    "HTTP应答头",
+  "body":       "应答内容字符串",
+}
+```
+
+
+#### call_api 函数说明
+
+此函数提供后台调用在[应用网关](https://snz1.cn/k8s/javadoc/appgateway/2.%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/ExpSvc.html)中注册的微服务[后台接口](https://snz1.cn/k8s/javadoc/appgateway/2.用户手册/ExpSvc.html#认证模式说明)。
+
+它通过SQLRestful服务配置的 JWT RSA 私钥与 JWT 安全令牌产生 JWT 请求令牌并发起接口请求。
+
+> 具体JWT令牌请求方式参见《[通过网关调用后台服务接口
+](https://snz1.cn/k8s/javadoc/appgateway/2.%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/CallApi.html)》中的说明。
+
+**函数原型**
+
+```
+function call_api(URL, {
+  method: "HTTP METHOD", //请求方法，如GET、POST、PUT
+  headers: { //请求头
+    ...
+  },
+  body: ... //请求体，可以是JSON或参数内容。
+})
+```
+
+**返回结果**
+
+正常情况下 call_api 函数直接返回接口的JSON对象，只有在请求出错的情况下返回如下定义：
+
+
+```
+{
+  "status":     "应答状态文本",
+  "statusCode": "HTTP应答码",
+  "headers":    "HTTP应答头",
+  "body":       "应答内容字符串",
+}
+```
+
+如果请求的接口应答内容不能转换为JSON对象则返回与`fetch`函数相同的应答：
+
+### 内置的接口说明
+
+#### 心跳检测
+
+* 接口地址：/health
+* 请求方法：GET
+* 应答格式：JSON
+
+```json
+```
+
+#### 清理所有缓存
+
+* 接口地址：/clear_caches
+* 请求方法：POST
+* 应答格式：JSON
+
+```json
+```
+
+#### swagger2.0文档接口
+
+* 接口地址：/v2/api-docs
+* 请求方法：GET
+* 应答格式：JSON
+
+```json
+```
+
+## 运行SQLRestful服务
+
+准备好HCL配置文件以后即可对外提供微服务接口了，你可以独立运行docker镜像，也可以使用DevOPS流程部署到容器环境中。
 
 ### 查看帮助
 
@@ -283,42 +466,26 @@ Usage of sqlrestful:
         缺省的配置文件路径（多个文件使用逗号分隔） (default "./*.hcl")
   -driver string
         SQL类型 (default "postgres")
-  -redis  string
-        Redis连接：redis://:password@<redis host>:6379/<dbindex>
   -dsn string
         SQL数据源配置 (default "user=postgres password= dbname=postgres sslmode=disable connect_timeout=3")
   -hdb.protocol.trace
         enabling hdb protocol trace
   -hdb.sqlTrace
         enabling hdb sql trace
+  -jwt-expires int
+        JWT安全令牌 (default 1800)
+  -jwt-keyfile string
+        RSA私钥文件（PEM格式） (default "./app.pem")
+  -jwt-secret string
+        JWT安全令牌
   -port string
         HTTP监听端口 (default ":80")
+  -redis string
+        Redis连接：redis://:password@<redis host>:6379/0
   -sep string
         SQL分隔符 (default "---\\\\--")
   -workers int
         工作线程数量 (default 1)
-```
-
-### 运行服务
-
-**运行指定目录下的配置**
-
-```
-docker run -ti --rm snz1/sqlrestful \
-  -v /sqlrestful:/sqlrestful \
-  -p 80:80 \
-  -driver "postgres" \
-  -dsn "user=<dbuser> password=<password> dbname=<dbname> sslmode=disable connect_timeout=3 host=<db host>"
-```
-
-**运行示例目录的配置**
-
-```
-docker run -ti --rm snz1/sqlrestful \
-  -p 80:80 \
-  -driver "postgres" \
-  -dsn "postgresql://<dbuser>:<dbpassword>@<dbhost>:<dbport>/<dbname>?sslmode=disable"
-  -config "/test/*.hcl"
 ```
 
 ### 数据库驱动及连接串
@@ -339,6 +506,42 @@ docker run -ti --rm snz1/sqlrestful \
 | `hdb` (SAP HANA) |   `hdb://user:password@host:port` |
 | `clickhouse` (Yandex ClickHouse) |   `tcp://host1:9000?username=user&password=qwerty&database=clicks&read_timeout=10&write_timeout=20&alt_hosts=host2:9000,host3:9000` |
 
+### 配置JWT请求令牌参数
+
+需要把应用的 RSA 私钥文件放到镜像的文件系统中，然后在命令行中加入`jwt-keyfile`、`jwt-secret`、`jwt-expires`参数：
+
+```
+-jwt-keyfile "/sqlrestful/app.pem" -jwt-secret "***********" -jwt-expires=3600
+```
+
+### 运行服务
+
+**运行指定目录下的配置**
+
+```
+docker run -ti --rm \
+  -v /path/of/your/sqlrestful:/sqlrestful \
+  -v /pathof/your/app.pem:/sqlrestful/app.pem:ro \
+  -p 80:80 \
+  snz1/sqlrestful \
+  -driver "postgres" \
+  -dsn "postgesql://username:password@server:port/dbname?sslmode=disable&connect_timeout=3" \
+  -redis "redis://:password@server:port/0" \
+  -jwt-keyfile "./app.pem" \
+  -jwt-secret "**********" \
+  -jwt-expires 3600
+```
+
+**运行示例目录的配置**
+
+```
+docker run -ti --rm \
+  -p 80:80 \
+  snz1/sqlrestful \
+  -driver "postgres" \
+  -dsn "postgesql://username:password@server:port/dbname?sslmode=disable&connect_timeout=3"
+  -config "/test/*.hcl"
+```
 
 ### 自定义镜像
 
@@ -347,92 +550,20 @@ docker run -ti --rm snz1/sqlrestful \
 FROM snz1/sqlrestful
 
 # 把你的HCL配置文件添加到镜像的`/sqlrestful`目录下
-ADD <your hcl file> /sqlrestful
+ADD <your hcl file> /sqlrestful/
+
+# 把RSA私钥文件添加到镜像的`/sqlrestful`目录下
+ADD <rsa privekey file> /sqlrestful/
 
 # 根据生产环境，自定义入口配置参数
-ENTRYPOINT ["sqlrestful", "-driver", "postgres", "-dsn", ...]
-```
-
-### 示例配置
-
-```
-//对象集
-tables {
-
-  //上下文路径
-  path = "/tables"
-
-  //获取对象集数据
-  get {
-
-    //返回记录总数，加了此定义则返回分页对象(强制type=page)
-    total = <<SQL
-      SELECT count(tablename) FROM pg_tables 
-      WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%';
-    SQL
-
-    //输入参数绑定
-    bind {
-      offset = "$input.offset"
-      limit = "$input.limit"
-    }
-
-    //缓存
-    cache {
-      //返回并设置缓存
-      put = [ "test.tables" ]
-    }
-
-    //接口返回SQL表达式
-    exec = <<SQL
-      SELECT * FROM pg_tables 
-      WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%' 
-      ORDER BY tablename  offset :offset limit :limit;
-    SQL
-
-  }
-
-}
-
-//对象
-table_item {
-
-  path = "/tables/:id"
-
-  get {
-
-    //返回对象类型：object表示单个对象
-    type = "object"
-
-    //参数绑定，input表示请求参数
-    bind {
-      tablename = "$input.id"
-    }
-
-    //缓存配置
-    cache {
-      //返回并设置缓存
-      put = ["test.table"]
-      //清除缓存test.tables
-      evit = ["test.tables"]
-    }
-
-    //接口返回SQL表达式
-    exec = <<SQL
-      SELECT * FROM pg_tables 
-      WHERE tablename = :tablename
-    SQL
-  }
-
-}
-
+ENTRYPOINT ["sqlrestful", "-driver", "postgres", "-dsn", ..., "-jwt-secret", "..."]
 ```
 
 ## 计划功能
 
- - [X] 实现Redis缓存配置，为restful接口实现缓存接口。
- - [ ] 实现标准的swagger-ui文档接口(/v2/api-docs)。
+ - [x] 实现Redis缓存配置，为restful接口实现缓存接口。
+ - [x] 实现标准的swagger-ui文档接口(/v2/api-docs)。
  - [ ] 加入oracle、db2等商用数据库支持。
- - [ ] 完善在JS中发起JWT请求令牌请求其他接口。
- - [ ] 编写JS转换器说明文档。
+ - [x] 完善在JS中发起JWT请求令牌请求其他接口。
+ - [x] 编写JS脚本及内置函数说明文档。
 

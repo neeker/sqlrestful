@@ -45,9 +45,16 @@ func initRestfulServer() error {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = customHTTPErrorHandler
 
-	e.GET("/", routeIndex)
-	e.GET("/health", routeHealth)
-	e.GET("/v2/api-docs", routeAPIDocs)
+	routeBase := *flagBasePath
+
+	if routeBase == "/" {
+		routeBase = ""
+	}
+
+	e.GET(routeBase + "/", routeIndex)
+	e.GET(routeBase + "/health", routeHealth)
+	e.POST(routeBase + "clear_caches", routeClearCaches)
+	e.GET(routeBase + "/v2/api-docs", routeAPIDocs)
 
 	for _, macro := range macrosManager.List() {
 		if (len(macro.Exec) > 0) {
@@ -56,29 +63,29 @@ func initRestfulServer() error {
 					method = strings.ToUpper(method)
 					switch {
 					case method == "GET" :
-						e.GET(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+						e.GET(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 							return middlewareAuthorize(macro, next)
 						})
 					case method == "POST" :
-						e.POST(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+						e.POST(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 							return middlewareAuthorize(macro, next)
 						})
 					case method == "PUT" :
-						e.POST(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+						e.POST(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 							return middlewareAuthorize(macro, next)
 						})
 					case method == "PATCH" :
-						e.PATCH(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+						e.PATCH(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 							return middlewareAuthorize(macro, next)
 						})
 					case method == "DELETE" :
-						e.DELETE(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+						e.DELETE(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 							return middlewareAuthorize(macro, next)
 						})
 					}
 				}
 			} else {
-				e.GET(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+				e.GET(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 					return middlewareAuthorize(macro, next)
 				})
 			}
@@ -86,23 +93,23 @@ func initRestfulServer() error {
 			for method, childMacro := range macro.methodMacros {
 				switch {
 				case method == "GET" :
-					e.GET(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+					e.GET(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 						return middlewareAuthorize(childMacro, next)
 					})
 				case method == "POST" :
-					e.POST(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+					e.POST(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 						return middlewareAuthorize(childMacro, next)
 					})
 				case method == "PUT" :
-					e.POST(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+					e.POST(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 						return middlewareAuthorize(childMacro, next)
 					})
 				case method == "PATCH" :
-					e.PATCH(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+					e.PATCH(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 						return middlewareAuthorize(childMacro, next)
 					})
 				case method == "DELETE" :
-					e.DELETE(macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
+					e.DELETE(routeBase + macro.Path, routeExecMacro, func(next echo.HandlerFunc) echo.HandlerFunc { 
 						return middlewareAuthorize(childMacro, next)
 					})
 				}

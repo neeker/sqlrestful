@@ -31,6 +31,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	"github.com/dop251/goja"
 	"gopkg.in/resty.v1"
 	"github.com/dgrijalva/jwt-go"
@@ -54,8 +56,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 		vm.Set(k, v)
 	}
 	vm.Set("fetch", jsFetchfunc)
-	vm.Set("fetch_url", jsFetchfunc)
-	vm.Set("fetch_api", jsJWTFetchfunc)
+	vm.Set("call_api", jsJWTFetchfunc)
 	vm.Set("log", log.Println)
 	return vm
 }
@@ -136,6 +137,14 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 		}
 		headers["Authorization"] = "Bearer " + requestToken
 	}
+
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+
+	if headers["Content-Type"] == "" {
+		headers["Content-Type"] = "application/json; charset=UTF-8"
+	}
 	
 	if nil != option["body"] {
 		body, _ = option["body"]
@@ -143,21 +152,39 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 
 	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
 	if err != nil {
-		return nil, err
+		return map[string]interface{}{
+			"code": 5000,
+			"message": err.Error(),
+		}, nil
 	}
 
-	rspHdrs := resp.Header()
-	rspHdrsNormalized := map[string]string{}
-	for k, v := range rspHdrs {
-		rspHdrsNormalized[strings.ToLower(k)] = v[0]
+	var respData map[string]interface{}
+	respCode := resp.StatusCode()
+
+	if respCode >= 200 &&  respCode < 400 {
+		respCode = 0
 	}
 
-	return map[string]interface{}{
-		"status":     resp.Status(),
-		"statusCode": resp.StatusCode(),
-		"headers":    rspHdrsNormalized,
-		"body":       string(resp.Body()),
-	}, nil
+	log.Println(string(resp.Body()))
+
+	if nil != json.Unmarshal(resp.Body(), &respData) || respData == nil || len(respData) == 0 {
+
+		rspHdrs := resp.Header()
+		rspHdrsNormalized := map[string]string{}
+		for k, v := range rspHdrs {
+			rspHdrsNormalized[strings.ToLower(k)] = v[0]
+		}
+	
+		return map[string]interface{}{
+			"status":     resp.Status(),
+			"statusCode": resp.StatusCode(),
+			"headers":    rspHdrsNormalized,
+			"code": 			respCode,
+			"body":       string(resp.Body()),
+		}, nil
+	} else {
+		return respData, nil
+	}
 
 }
 

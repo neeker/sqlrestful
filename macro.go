@@ -49,9 +49,14 @@ type Macro struct {
 	Validators  map[string]string
 	Authorizer  string
 	Bind        map[string]string
+	Impl        string
+	Ret         string
 	Exec        string
 	Aggregate   []string
 	Transformer string
+	Tags        []string
+
+	Summary string
 
 	Path string
 
@@ -115,16 +120,16 @@ func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
 func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface{}) (interface{}, error) {
 	ok, err := m.authorize(input)
 	if err != nil {
-		return err.Error(), err
+		return nil, err
 	}
 
 	if !ok {
-		return errAuthorizationError.Error(), errAuthorizationError
+		return nil, errAccessDenyError
 	}
 
 	invalid, err := m.validate(input)
 	if err != nil {
-		return err.Error(), err
+		return nil, err
 	} else if len(invalid) > 0 {
 		return invalid, errValidationError
 	}
@@ -159,17 +164,22 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 	} else if len(m.Total) > 0 {
 		if input["offset"] == nil {
-			input["offset"] = uint32(0)
+			input["offset"] = int64(0)
 		}
 		if input["limit"] == nil {
-			input["limit"] = uint32(0)
+			input["limit"] = int64(0)
 		}
 
-		var total uint32
+		var total int64
 
-		total, err = m.execSQLTotal(strings.Split(strings.TrimSpace(m.Total), *flagSQLSeparator), input)
+		if m.Impl == "js" {
+			total, err = m.execJavaScriptTotal(m.Total, input)
+		} else {
+			total, err = m.execSQLTotal(strings.Split(strings.TrimSpace(m.Total), *flagSQLSeparator), input)
+		}
+
 		if err != nil {
-			return err.Error(), err
+			return nil, err
 		}
 
 		pageRet := make(map[string]interface{})
@@ -177,14 +187,19 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		pageRet["offset"] = input["offset"]
 		pageRet["total"] = total
 
-		out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
+		if m.Impl == "js" {
+			out, err = m.execJavaScript(m.Total, input)
+		} else {
+			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
+		}
+
 		if err != nil {
-			return err.Error(), err
+			return nil, err
 		}
 
 		out, err = m.transform(out)
 		if err != nil {
-			return err.Error(), err
+			return nil, err
 		}
 
 		pageRet["data"] = out
@@ -198,12 +213,17 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 
 		return pageRet, nil
 	} else {
-		out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
+		if m.Impl == "js" {
+			out, err = m.execJavaScript(m.Exec, input)
+		} else {
+			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
+		}
+
 		if err != nil {
 			return err.Error(), err
 		}
 
-		if m.Type == "object" {
+		if m.Type == "object" && m.Impl != "js" {
 			tmp := out.([]map[string]interface{})
 			if len(tmp) == 0 {
 				return nil, errNoMacroFound
@@ -234,7 +254,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 }
 
 // execSQLQuery - execute the specified sql query
-func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (uint32, error) {
+func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64, error) {
 	args, err := m.buildBind(input)
 	if err != nil {
 		return 0, err
@@ -274,7 +294,7 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (uint3
 			continue
 		}
 		for _, v := range row {
-			return uint32(v.(float64)), nil
+			return int64(v.(float64)), nil
 		}
 	}
 
@@ -327,6 +347,42 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 	}
 
 	return interface{}(ret), nil
+}
+
+// execJavaScript - run the javascript function
+func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) (interface{}, error) {
+	var execError error
+
+	vm := initJSVM(map[string]interface{}{"$input": input})
+
+	val, err := vm.RunString(javascript)
+	if err != nil {
+		return nil, err
+	}
+
+	if execError != nil {
+		return nil, execError
+	}
+
+	return val.Export(), nil
+}
+
+// execJavaScriptTotal - run the javascript total function
+func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interface{}) (int64, error) {
+	var execError error
+
+	vm := initJSVM(map[string]interface{}{"$input": input})
+
+	val, err := vm.RunString(javascript)
+	if err != nil {
+		return 0, err
+	}
+
+	if execError != nil {
+		return 0, execError
+	}
+
+	return val.ToInteger(), nil
 }
 
 // scanSQLRow - scan a row from the specified rows
