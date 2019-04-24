@@ -190,7 +190,7 @@ func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{})
 		}
 
 		pathsMap[macro.Path] = apiPathMethods
-		
+
 	}
 
 	retmap := []map[string]interface{}{}
@@ -236,7 +236,7 @@ func routeClearCaches(c echo.Context) error {
 		macro := macrosManager.Get(macroName)
 
 		if macro.Cache != nil && len(macro.Cache.Put) > 0 {
-			if childm.Cache.Put != nil {
+			if macro.Cache.Put != nil {
 				for _, k := range macro.Cache.Put {
 					redisDb.Del(k)
 				}
