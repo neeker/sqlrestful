@@ -27,9 +27,9 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
-	"encoding/json"
 
 	"github.com/labstack/echo"
 )
@@ -51,34 +51,34 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 	}))
 }
 
-func getMacroBindParams(macro *Macro)([]map[string]interface{}) {
+func getMacroBindParams(macro *Macro) []map[string]interface{} {
 	ret := []map[string]interface{}{}
 	if len(macro.Bind) > 0 {
 		for k, v := range ret {
 			var desc []byte
 			desc, _ = json.Marshal(v)
-			ret = append(ret, map[string]interface{} {
-				"name": k,
-				"in": "query",
+			ret = append(ret, map[string]interface{}{
+				"name":        k,
+				"in":          "query",
 				"description": string(desc),
-				"required": false,
-				"type": "string",
+				"required":    false,
+				"type":        "string",
 			})
 		}
 	} else {
-		ret = append(ret, map[string]interface{} {
-			"name": "parameters",
-			"in": "query",
+		ret = append(ret, map[string]interface{}{
+			"name":        "parameters",
+			"in":          "query",
 			"description": "parameters",
-			"required": false,
-			"type": "object",
+			"required":    false,
+			"type":        "object",
 		})
 	}
-	return ret;
+	return ret
 }
 
 //getTagsAndRestfulPaths
-func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{}) {
+func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{}) {
 	tagsMap := make(map[string]interface{})
 	pathsMap := make(map[string]interface{})
 
@@ -93,45 +93,45 @@ func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{})
 				definedMethods = append(definedMethods, "GET")
 			}
 			for _, k := range definedMethods {
-				apiPathMethods[strings.ToLower(k)] = map[string]interface{} {
-					"tags": macro.Tags,
-					"summary": macro.Summary,
+				apiPathMethods[strings.ToLower(k)] = map[string]interface{}{
+					"tags":        macro.Tags,
+					"summary":     macro.Summary,
 					"operationId": macro.name,
-					"consumes": []string{ "application/json" },
-					"produces": []string{ "application/json;charset=UTF-8" },
-					"parameters": getMacroBindParams(macro),
-					"responses": map[string]interface{} {
-						"200": map[string]interface{} {
+					"consumes":    []string{"application/json"},
+					"produces":    []string{"application/json;charset=UTF-8"},
+					"parameters":  getMacroBindParams(macro),
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{
 							"description": "OK",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
-						"401": map[string]interface{} {
+						"401": map[string]interface{}{
 							"description": "Unauthorized",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
-						"403": map[string]interface{} {
+						"403": map[string]interface{}{
 							"description": "Forbidden",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
 					},
-					"definitions": map[string]interface{} {
-						"result": map[string]interface{} {
+					"definitions": map[string]interface{}{
+						"result": map[string]interface{}{
 							"type": "object",
-							"properties": map[string]interface{} {
-								"code": map[string]interface{} {
-									"type": "integer",
+							"properties": map[string]interface{}{
+								"code": map[string]interface{}{
+									"type":   "integer",
 									"format": "int32",
 								},
-								"message": map[string]interface{} {
+								"message": map[string]interface{}{
 									"type": "string",
 								},
-								"data": map[string]interface{} {
+								"data": map[string]interface{}{
 									"type": "object",
 								},
 							},
@@ -141,45 +141,45 @@ func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{})
 			}
 		} else {
 			for k, childm := range macro.methodMacros {
-				apiPathMethods[strings.ToLower(k)] = map[string]interface{} {
-					"tags": childm.Tags,
-					"summary": childm.Summary,
+				apiPathMethods[strings.ToLower(k)] = map[string]interface{}{
+					"tags":        childm.Tags,
+					"summary":     childm.Summary,
 					"operationId": childm.name,
-					"consumes": []string{ "application/json" },
-					"produces": []string{ "application/json;charset=UTF-8" },
-					"parameters": getMacroBindParams(childm),
-					"responses": map[string]interface{} {
-						"200": map[string]interface{} {
+					"consumes":    []string{"application/json"},
+					"produces":    []string{"application/json;charset=UTF-8"},
+					"parameters":  getMacroBindParams(childm),
+					"responses": map[string]interface{}{
+						"200": map[string]interface{}{
 							"description": "OK",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
-						"401": map[string]interface{} {
+						"401": map[string]interface{}{
 							"description": "Unauthorized",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
-						"403": map[string]interface{} {
+						"403": map[string]interface{}{
 							"description": "Forbidden",
-							"schema": map[string]interface{} {
+							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
 							},
 						},
 					},
-					"definitions": map[string]interface{} {
-						"result": map[string]interface{} {
+					"definitions": map[string]interface{}{
+						"result": map[string]interface{}{
 							"type": "object",
-							"properties": map[string]interface{} {
-								"code": map[string]interface{} {
-									"type": "integer",
+							"properties": map[string]interface{}{
+								"code": map[string]interface{}{
+									"type":   "integer",
 									"format": "int32",
 								},
-								"message": map[string]interface{} {
+								"message": map[string]interface{}{
 									"type": "string",
 								},
-								"data": map[string]interface{} {
+								"data": map[string]interface{}{
 									"type": "object",
 								},
 							},
@@ -197,7 +197,7 @@ func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{})
 
 	for k, v := range tagsMap {
 		retmap = append(retmap, map[string]interface{}{
-			"name": k,
+			"name":        k,
 			"description": v,
 		})
 	}
@@ -207,22 +207,22 @@ func getTagsAndRestfulPaths()([]map[string]interface{}, map[string] interface{})
 
 //routeApiDocs
 func routeAPIDocs(c echo.Context) error {
-  apiTags, apiPaths := getTagsAndRestfulPaths()
-	retdata := map[string]interface{} {
+	apiTags, apiPaths := getTagsAndRestfulPaths()
+	retdata := map[string]interface{}{
 		"swagger": "2.0",
-		"info": map[string]interface{} {
+		"info": map[string]interface{}{
 			"description": *flagDescription,
-			"version": *flagVersion,
-			"title": *flagName,
-			"contact": map[string]interface{} {
-				"name": *flagAuthor,
+			"version":     *flagVersion,
+			"title":       *flagName,
+			"contact": map[string]interface{}{
+				"name":  *flagAuthor,
 				"email": *flagEmail,
 			},
 		},
-		"host": "",
+		"host":     "",
 		"basePath": *flagBasePath,
-		"tags": apiTags,
-		"paths": apiPaths,
+		"tags":     apiTags,
+		"paths":    apiPaths,
 	}
 
 	return c.JSON(200, retdata)
@@ -235,16 +235,14 @@ func routeClearCaches(c echo.Context) error {
 
 		macro := macrosManager.Get(macroName)
 
-		if macro.Cache != nil && len(macro.Cache.Put) > 0 {
-			if macro.Cache.Put != nil {
-				for _, k := range macro.Cache.Put {
-					redisDb.Del(k)
-				}
+		if macro.Cache != nil && macro.Cache.Put != nil && len(macro.Cache.Put) > 0 {
+			for _, k := range macro.Cache.Put {
+				redisDb.Del(k)
 			}
 		}
 
 		for _, childm := range macro.methodMacros {
-			if childm.Cache.Put != nil {
+			if childm.Cache != nil && childm.Cache.Put != nil && len(childm.Cache.Put) > 0 {
 				for _, k := range childm.Cache.Put {
 					redisDb.Del(k)
 				}

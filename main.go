@@ -35,7 +35,7 @@ import (
 
 func main() {
 	fmt.Println(color.MagentaString(serverBrand))
-	fmt.Printf("  服务版本: %s \n", color.GreenString(serverVersion))
+	fmt.Printf("  工具版本: %s \n", color.GreenString(serverVersion))
 
 	if *flagDBDriver == "" || *flagDBDSN == "" {
 		fmt.Printf("  SQL 驱动: %s \n", color.RedString("<未配置>"))
