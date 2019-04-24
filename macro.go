@@ -134,6 +134,15 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		return invalid, errValidationError
 	}
 
+	if len(m.Total) > 0 {
+		if input["offset"] == nil {
+			input["offset"] = int64(0)
+		}
+		if input["limit"] == nil {
+			input["limit"] = int64(0)
+		}
+	}
+
 	var (
 		out      interface{}
 		cacheKey string
