@@ -51,11 +51,21 @@ func initRestfulServer() error {
 		routeBase = ""
 	}
 
+	//启用swagger-ui的webJar
+	e.Static(routeBase + "/webjars", "/swagger2/webjars");
+	e.File(routeBase + "/swagger-ui.html", "/swagger2/swagger-ui.html")
+	e.File(routeBase + "/swagger-resources/configuration/ui", "/swagger2/ui.json")
+	e.File(routeBase + "/swagger-resources", "/swagger2/swagger-resources.json")
+	e.File(routeBase + "/swagger-resources/configuration/security", "/swagger2/security.json")
+
+	e.GET(routeBase + "/v2/api-docs", routeAPIDocs)
+
+	//添加默认路由
 	e.GET(routeBase + "/", routeIndex)
 	e.GET(routeBase + "/health", routeHealth)
 	e.POST(routeBase + "clear_caches", routeClearCaches)
-	e.GET(routeBase + "/v2/api-docs", routeAPIDocs)
 
+	//添加微服务接口路由
 	for _, macro := range macrosManager.List() {
 		if (len(macro.Exec) > 0) {
 			if (len(macro.Methods) > 0) {

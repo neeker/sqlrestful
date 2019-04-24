@@ -13,6 +13,7 @@ RUN cd /tmp/sqlrestful && \
 RUN cp -f /tmp/sqlrestful/sqlrestful /usr/local/bin
 
 RUN mkdir -p /test && \
+    cp -R /tmp/sqlrestful/swagger2 /swagger2 && \
     cp /tmp/sqlrestful/examples/*.hcl /test/
 
 RUN rm -rf /tmp/sqlrestful && \
