@@ -7,7 +7,9 @@ SQLRestful采用HCL语言配合SQL、JavaScript脚本来开发微服务接口。
 
 > 参见[什么是`HCL`配置语言](hcl.md)了解`HCL`基本概念
 
-### SQlRestful配置项
+### 图解SQlRestful配置项
+
+SQLRestful配置遵循Restful规范，采用路径、方法对应对象的不同操作语义，见下图所示：
 
 <img src="img/sqlrestful.png" width="90%" />
 
