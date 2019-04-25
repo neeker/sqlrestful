@@ -1,4 +1,4 @@
-# SQLRestful宏说明
+# `SQLRestful`开发及`HCL`配置说明
 
 
 ### SQLRestful的宏配置结构

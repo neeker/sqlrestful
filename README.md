@@ -38,7 +38,13 @@
  - [x] 配置脚本支持完整的`Javascript ECMAScript 5.1`规范
  - [ ] 加入oracle、db2等商用数据库支持。
 
-## 界面截图
+## 入门文档
+
+ - [半小时实现一个完整的微服务接口](docs/start.md)
+ - [`SQLRestful`开发及`HCL`配置说明](docs/macros.md)
+ - [什么是`HCL`配置语言](docs/base.md)
+
+## 快照截图
 
 <div text-align="center">
 

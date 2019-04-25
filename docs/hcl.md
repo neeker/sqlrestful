@@ -1,6 +1,4 @@
-# 基础概念
-
-**什么是HCL配置语言**
+# 什么是`HCL`配置语言
 
 HCL配置语言请参见[HCL官网](https://github.com/hashicorp/hcl)。
 
