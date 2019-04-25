@@ -1,11 +1,15 @@
 # `SQLRestful`开发及`HCL`配置说明
 
 
-### SQLRestful的宏配置结构
+### 概要说明
 
-SQLRestful采用HCL语言配合SQL、JavaScript脚本开发微服务接口。
+SQLRestful采用HCL语言配合SQL、JavaScript脚本来开发微服务接口。
 
-> 示例参见测试配置文件([test.hcl](https://github.com/neeker/sqlrestful/blob/master/test.hcl))
+> 参见[什么是`HCL`配置语言](hcl.md)了解`HCL`基本概念
+
+### SQlRestful配置项
+
+<img src="img/sqlrestful.png" width="90%" />
 
 #### 基本宏定义
 
@@ -247,4 +251,5 @@ exec = <<SQL
 SQL
 ```
 
-> `$input`表示请求输入参数。
+> `$input`表示请求参数。
+
