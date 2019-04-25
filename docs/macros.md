@@ -20,8 +20,8 @@ SQLRestful配置遵循Restful规范，采用路径、方法对应对象的不同
 //用于restful接口中的get、post、put、patch、delete等属性定义
 macro_define {
 
-  //服务接口的分类标签（可忽略）
-  tag = ["标签"]
+  //服务接口的分类标签（可忽略），可继承根定义
+  tags = ["标签"]
 
   //摘要描述（可忽略）
   summary = ""
@@ -88,6 +88,7 @@ macro_define {
   JS
 
   //返回数据处理，enclosed表示接口返回信封封装（默认），origin表示原样返回（不封装）
+  //null表示不返回数据（仅返回封装头）
   ret = "enclosed"
 
 }
@@ -105,7 +106,7 @@ object_items {
   path = "/path/of/object_items"
 
   //服务接口的分类标签（可忽略）
-  tag = ["标签"]
+  tags = ["标签"]
 
   //摘要描述（可忽略）
   summary = ""
@@ -168,7 +169,7 @@ object_items {
   path = "/path/of/object_items/:id"
 
   //服务接口的分类标签（可忽略）
-  tag = ["标签"]
+  tags = ["标签"]
 
   //摘要描述（可忽略）
   summary = ""
