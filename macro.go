@@ -97,7 +97,7 @@ func putCacheData(cacheNames []string, cacheKey string, val interface{}) (bool, 
 			return false, err
 		}
 	}
-	return ret, err
+	return ret, nil
 }
 
 // Get cache data
@@ -131,7 +131,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	if err != nil {
 		return nil, err
 	} else if len(invalid) > 0 {
-		return invalid, errValidationError
+		return nil, errValidationError
 	}
 
 	if len(m.Total) > 0 {
@@ -169,7 +169,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	if len(m.Aggregate) > 0 {
 		out, err = m.aggregate(input, inputKey)
 		if err != nil {
-			return err.Error(), err
+			return nil, err
 		}
 	} else if len(m.Total) > 0 {
 		if input["offset"] == nil {
@@ -229,7 +229,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		if err != nil {
-			return err.Error(), err
+			return nil, err
 		}
 
 		if m.Type == "object" && m.Impl != "js" {
@@ -287,13 +287,13 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 			continue
 		}
 		if _, err := conn.NamedExec(sql, args); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("run %s total(sql) error: %s", m.name, err.Error())
 		}
 	}
 
 	rows, err := conn.NamedQuery(sqls[len(sqls)-1], args)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("run %s total(sql) error: %s", m.name, err.Error())
 	}
 	defer rows.Close()
 
@@ -335,13 +335,13 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 			continue
 		}
 		if _, err := conn.NamedExec(sql, args); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("run %s exec(sql) error: %s", m.name, err.Error())
 		}
 	}
 
 	rows, err := conn.NamedQuery(sqls[len(sqls)-1], args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("run %s exec(sql) error: %s", m.name, err.Error())
 	}
 	defer rows.Close()
 
@@ -360,17 +360,12 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 
 // execJavaScript - run the javascript function
 func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) (interface{}, error) {
-	var execError error
 
 	vm := initJSVM(map[string]interface{}{"$input": input})
 
 	val, err := vm.RunString(javascript)
 	if err != nil {
-		return nil, err
-	}
-
-	if execError != nil {
-		return nil, execError
+		return nil, fmt.Errorf("run %s exec(js) error: %s", m.name, err.Error())
 	}
 
 	return val.Export(), nil
@@ -378,17 +373,11 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 
 // execJavaScriptTotal - run the javascript total function
 func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interface{}) (int64, error) {
-	var execError error
-
 	vm := initJSVM(map[string]interface{}{"$input": input})
 
 	val, err := vm.RunString(javascript)
 	if err != nil {
-		return 0, err
-	}
-
-	if execError != nil {
-		return 0, execError
+		return 0, fmt.Errorf("run %s total(js) error: %s", m.name, err.Error())
 	}
 
 	return val.ToInteger(), nil
@@ -435,7 +424,7 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 
 	v, err := vm.RunString(transformer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("run %s transformer error: %s", m.name, err.Error())
 	}
 
 	return v.Export(), nil
@@ -448,17 +437,11 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 		return true, nil
 	}
 
-	var execError error
-
 	vm := initJSVM(map[string]interface{}{"$input": input})
 
 	val, err := vm.RunString(m.Authorizer)
 	if err != nil {
-		return false, err
-	}
-
-	if execError != nil {
-		return false, execError
+		return false, fmt.Errorf("run %s authorize error: %s", m.name, err.Error())
 	}
 
 	return val.ToBoolean(), nil
@@ -470,7 +453,7 @@ func (m *Macro) aggregate(input map[string]interface{}, inputKey map[string]inte
 	for _, k := range m.Aggregate {
 		macro := m.manager.Get(k)
 		if nil == macro {
-			err := fmt.Errorf("不存在的宏： %s", k)
+			err := fmt.Errorf("%s aggregate not existed macro(%s)!", m.name, k)
 			return nil, err
 		}
 		out, err := macro.Call(input, inputKey)
@@ -493,7 +476,7 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 	for k, src := range m.Validators {
 		val, err := vm.RunString(src)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("run %s validate(%s=\"%s\") error: %s", m.name, k, src, err.Error())
 		}
 
 		if !val.ToBoolean() {
@@ -501,7 +484,7 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 		}
 	}
 
-	return ret, err
+	return ret, nil
 }
 
 // buildBind - build the bind vars
@@ -516,7 +499,7 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 	for k, src := range m.Bind {
 		val, err := vm.RunString(src)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("run %s bind(%s=\"%s\") error: %s", m.name, k, src, err.Error())
 		}
 
 		ret[k] = val.Export()
@@ -530,7 +513,7 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 	for _, name := range m.Include {
 		macro := m.manager.Get(name)
 		if nil == macro {
-			return fmt.Errorf("宏%s不存在！", name)
+			return fmt.Errorf("%s include not existed macro(%s)!", m.name, name)
 		}
 		_, err := macro.Call(input, inputKey)
 		if err != nil {

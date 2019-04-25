@@ -36,6 +36,7 @@ import (
 	"github.com/dop251/goja"
 	"gopkg.in/resty.v1"
 	"github.com/dgrijalva/jwt-go"
+
 )
 
 
@@ -46,7 +47,8 @@ func genJWTRequestToken() (string, error) {
     Issuer:   jwtSecret,
 	}
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return jwtToken.SignedString(jwtRSAPrivkey)
+	ret, err := jwtToken.SignedString(jwtRSAPrivkey)
+	return ret, err
 }
 
 // initJSVM - creates a new javascript virtual machine
@@ -164,8 +166,6 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 	if respCode >= 200 &&  respCode < 400 {
 		respCode = 0
 	}
-
-	log.Println(string(resp.Body()))
 
 	if nil != json.Unmarshal(resp.Body(), &respData) || respData == nil || len(respData) == 0 {
 

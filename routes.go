@@ -27,7 +27,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -51,29 +50,47 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 	}))
 }
 
-func getMacroBindParams(macro *Macro) []map[string]interface{} {
-	ret := []map[string]interface{}{}
+func getMacroBindParams(macro *Macro, method string) []map[string]interface{} {
+
+	bindInput := map[string]string{}
+
 	if len(macro.Bind) > 0 {
-		for k, v := range ret {
-			var desc []byte
-			desc, _ = json.Marshal(v)
+		for k := range macro.Bind {
+			bindInput[k] = "query"
+		}
+	} else {
+		bindInput = make(map[string]string)
+	}
+
+	for _, k := range strings.Split(macro.Path, "/") {
+		if strings.HasPrefix(k, ":") {
+			bindInput[k[1:]] = "path"
+		}
+	}
+
+	ret := []map[string]interface{}{}
+	if len(bindInput) > 0 {
+		for k, v := range bindInput {
 			ret = append(ret, map[string]interface{}{
 				"name":        k,
-				"in":          "query",
-				"description": string(desc),
+				"in":          v,
+				"description": k,
 				"required":    false,
 				"type":        "string",
 			})
 		}
-	} else {
+	} else if method == "post" || method == "put" || method == "patch" {
 		ret = append(ret, map[string]interface{}{
-			"name":        "parameters",
-			"in":          "query",
-			"description": "parameters",
+			"name":        "body",
+			"in":          "body",
+			"description": "body",
 			"required":    false,
-			"type":        "object",
+			"schema": map[string]interface{}{
+				"$ref": "#/definitions/jsonbody",
+			},
 		})
 	}
+
 	return ret
 }
 
@@ -84,22 +101,28 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	for _, macro := range macrosManager.List() {
 		for _, tag := range macro.Tags {
-			tagsMap[tag] = macro.name
+			if tagsMap[tag] == nil {
+				tagsMap[tag] = macro.name
+			} else {
+				tagsMap[tag] = tagsMap[tag].(string) + " " + macro.name
+			}
 		}
 		apiPathMethods := make(map[string]interface{})
 		if len(macro.Exec) > 0 {
-			definedMethods := macro.Methods
+			definedMethods := []string{}
+			copy(definedMethods, macro.Methods)
 			if len(definedMethods) == 0 {
 				definedMethods = append(definedMethods, "GET")
 			}
 			for _, k := range definedMethods {
-				apiPathMethods[strings.ToLower(k)] = map[string]interface{}{
+				methodName := strings.ToLower(k)
+				apiPathMethods[methodName] = map[string]interface{}{
 					"tags":        macro.Tags,
 					"summary":     macro.Summary,
 					"operationId": macro.name,
 					"consumes":    []string{"application/json"},
 					"produces":    []string{"application/json;charset=UTF-8"},
-					"parameters":  getMacroBindParams(macro),
+					"parameters":  getMacroBindParams(macro, methodName),
 					"responses": map[string]interface{}{
 						"200": map[string]interface{}{
 							"description": "OK",
@@ -117,23 +140,6 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 							"description": "Forbidden",
 							"schema": map[string]interface{}{
 								"$ref": "#/definitions/result",
-							},
-						},
-					},
-					"definitions": map[string]interface{}{
-						"result": map[string]interface{}{
-							"type": "object",
-							"properties": map[string]interface{}{
-								"code": map[string]interface{}{
-									"type":   "integer",
-									"format": "int32",
-								},
-								"message": map[string]interface{}{
-									"type": "string",
-								},
-								"data": map[string]interface{}{
-									"type": "object",
-								},
 							},
 						},
 					},
@@ -141,13 +147,14 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 			}
 		} else {
 			for k, childm := range macro.methodMacros {
-				apiPathMethods[strings.ToLower(k)] = map[string]interface{}{
+				methodName := strings.ToLower(k)
+				apiPathMethods[methodName] = map[string]interface{}{
 					"tags":        childm.Tags,
 					"summary":     childm.Summary,
 					"operationId": childm.name,
 					"consumes":    []string{"application/json"},
 					"produces":    []string{"application/json;charset=UTF-8"},
-					"parameters":  getMacroBindParams(childm),
+					"parameters":  getMacroBindParams(childm, methodName),
 					"responses": map[string]interface{}{
 						"200": map[string]interface{}{
 							"description": "OK",
@@ -156,32 +163,15 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 							},
 						},
 						"401": map[string]interface{}{
-							"description": "Unauthorized",
+							"description": "用户未登录",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
+								"$ref": "#/definitions/error",
 							},
 						},
 						"403": map[string]interface{}{
-							"description": "Forbidden",
+							"description": "无权访问",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
-							},
-						},
-					},
-					"definitions": map[string]interface{}{
-						"result": map[string]interface{}{
-							"type": "object",
-							"properties": map[string]interface{}{
-								"code": map[string]interface{}{
-									"type":   "integer",
-									"format": "int32",
-								},
-								"message": map[string]interface{}{
-									"type": "string",
-								},
-								"data": map[string]interface{}{
-									"type": "object",
-								},
+								"$ref": "#/definitions/error",
 							},
 						},
 					},
@@ -189,8 +179,154 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 			}
 		}
 
-		pathsMap[macro.Path] = apiPathMethods
+		apd := false
+		tmpPaths := ""
+		for _, k := range strings.Split(macro.Path, "/") {
+			if apd {
+				tmpPaths = tmpPaths + "/"
+			} else {
+				apd = true
+			}
+			if strings.HasPrefix(k, ":") {
+				tmpPaths = tmpPaths + "{" + k[1:] + "}"
+			} else {
+				tmpPaths = tmpPaths + k
+			}
+		}
 
+		pathsMap[tmpPaths] = apiPathMethods
+
+	}
+
+	inline_tag := "z.内置接口"
+
+	tagsMap[inline_tag] = "inline implements"
+
+	pathsMap["/health"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "心跳检测",
+			"operationId": "inline_helath",
+			"consumes":    []string{"application/json"},
+			"produces":    []string{"application/json;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+					"schema": map[string]interface{}{
+						"$ref": "#/definitions/result",
+					},
+				},
+			},
+		},
+	}
+
+	pathsMap["/clear_caches"] = map[string]interface{}{
+		"post": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "清理所有缓存数据",
+			"operationId": "inline_clear_caches",
+			"consumes":    []string{"application/json"},
+			"produces":    []string{"application/json;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+					"schema": map[string]interface{}{
+						"$ref": "#/definitions/result",
+					},
+				},
+				"403": map[string]interface{}{
+					"description": "无权访问",
+					"schema": map[string]interface{}{
+						"$ref": "#/definitions/error",
+					},
+				},
+			},
+		},
+	}
+
+	pathsMap["/v2/api-docs"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "Swagger文档接口",
+			"operationId": "inline_v2_api_docs",
+			"consumes":    []string{"application/json"},
+			"produces":    []string{"application/json;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+					"schema": map[string]interface{}{
+						"$ref": "#/definitions/result",
+					},
+				},
+			},
+		},
+	}
+
+	pathsMap["/webjars"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "SwaggerUI资源",
+			"operationId": "inline_webjars",
+			"consumes":    []string{"text/html"},
+			"produces":    []string{"text/html;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+				},
+			},
+		},
+	}
+
+	pathsMap["/webjars"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "SwaggerUI静态资源",
+			"operationId": "inline_webjars",
+			"consumes":    []string{"text/html"},
+			"produces":    []string{"text/html;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+				},
+			},
+		},
+	}
+
+	pathsMap["/swagger-resources"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "SwaggerUI配置资源",
+			"operationId": "inline_swagger_resources",
+			"consumes":    []string{"text/html"},
+			"produces":    []string{"text/html;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+				},
+			},
+		},
+	}
+
+	pathsMap["/swagger-ui.html"] = map[string]interface{}{
+		"get": map[string]interface{}{
+			"tags":        []string{inline_tag},
+			"summary":     "SwaggerUI界面",
+			"operationId": "inline_swagger_ui",
+			"consumes":    []string{"text/html"},
+			"produces":    []string{"text/html;charset=UTF-8"},
+			"parameters":  map[string]interface{}{},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "OK",
+				},
+			},
+		},
 	}
 
 	retmap := []map[string]interface{}{}
@@ -223,6 +359,39 @@ func routeAPIDocs(c echo.Context) error {
 		"basePath": *flagBasePath,
 		"tags":     apiTags,
 		"paths":    apiPaths,
+		"definitions": map[string]interface{}{
+			"result": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"code": map[string]interface{}{
+						"type":   "integer",
+						"format": "int32",
+					},
+					"message": map[string]interface{}{
+						"type": "string",
+					},
+					"data": map[string]interface{}{
+						"type": "object",
+					},
+				},
+			},
+			"error": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"code": map[string]interface{}{
+						"type":   "integer",
+						"format": "int32",
+					},
+					"message": map[string]interface{}{
+						"type": "string",
+					},
+				},
+			},
+			"jsonbody": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
 	}
 
 	return c.JSON(200, retdata)
@@ -302,11 +471,16 @@ func routeExecMacro(c echo.Context) error {
 
 	if macro.Ret == "origin" {
 		return c.JSON(200, out)
-	} else {
+	} else if out != nil && macro.Ret != "null" {
 		return c.JSON(200, map[string]interface{}{
 			"code":    0,
 			"message": "操作成功！",
 			"data":    out,
+		})
+	} else {
+		return c.JSON(200, map[string]interface{}{
+			"code":    0,
+			"message": "操作成功！",
 		})
 	}
 }

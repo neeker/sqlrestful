@@ -44,7 +44,7 @@ type Manager struct {
 	sync.RWMutex
 }
 
-func initMacro(v *Macro) error {
+func fixMacro(v *Macro) error {
 	if len(v.Total) > 0 {
 		v.Type = "page"
 	}
@@ -154,7 +154,7 @@ func NewManager(configpath string) (*Manager, error) {
 				}
 
 				if v.Delete != nil {
-					v.methodMacros["Delete"] = v.Delete
+					v.methodMacros["DELETE"] = v.Delete
 				}
 
 				v.manager = manager
@@ -168,12 +168,21 @@ func NewManager(configpath string) (*Manager, error) {
 					v.Path = "/" + v.Path
 				}
 
-				initMacro(v)
+				fixMacro(v)
 
 				for k, childm := range v.methodMacros {
 					childm.manager = manager
-					childm.name = v.name + "_" + k
-					initMacro(childm)
+					childm.Methods = []string{k}
+					childm.name = v.name + "." + strings.ToLower(k)
+					childm.Path = v.Path
+					if childm.Tags == nil {
+						childm.Tags = v.Tags
+					} else {
+						for _, t := range v.Tags {
+							childm.Tags = append(childm.Tags, t)
+						}
+					}
+					fixMacro(childm)
 				}
 
 			}
