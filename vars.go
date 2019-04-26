@@ -51,6 +51,7 @@ var (
 	flagVersion        = flag.String("ver", "1.0", "实现版本")
 	flagAuthor         = flag.String("author", "痞子飞猪", "维护人员")
 	flagEmail          = flag.String("email", "13317312768@qq.com", "联系邮箱")
+	flagDebug          = flag.Int("debug", 0, "调试模式级别：0关闭、1普通、2，详细")
 )
 
 var (
