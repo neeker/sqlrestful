@@ -42,8 +42,7 @@ var (
 	flagRedisURL       = flag.String("redis", "", "Redis连接：redis://:password@<redis host>:6379/0")
 	flagRESTListenAddr = flag.String("port", ":80", "HTTP监听端口")
 	flagWorkers        = flag.Int("workers", runtime.NumCPU(), "工作线程数量")
-	flagSQLSeparator   = flag.String("sep", `---\\--`, "SQL分隔符")
-	flagRSAPrivkey     = flag.String("jwt-keyfile", "./app.pem", "RSA私钥文件（PEM格式）")
+	flagRSAPrivkey     = flag.String("jwt-keyfile", "", "RSA私钥文件（PEM格式）")
 	flagJWTSecret      = flag.String("jwt-secret", "", "JWT安全令牌")
 	flagJWTExpires     = flag.Int("jwt-expires", 1800, "JWT安全令牌")
 	flagName           = flag.String("name", "SQLRestful", "服务名称")
@@ -55,15 +54,17 @@ var (
 )
 
 var (
-	errNoMacroFound       = errors.New("资源不存在！")
-	errValidationError    = errors.New("校验出错了！")
-	errAuthorizationError = errors.New("用户未登录！")
-	errAccessDenyError    = errors.New("无权访问！")
+	errNoMacroFound       = errors.New("未知宏定义")
+	errObjNotFound        = errors.New("对象不存在")
+	errValidationError    = errors.New("校验出错了")
+	errAuthorizationError = errors.New("用户未登录")
+	errAccessDenyError    = errors.New("无权访问")
 )
 
 var (
 	errStatusCodeMap = map[error]int{
 		errNoMacroFound:       404,
+		errObjNotFound:        404,
 		errValidationError:    422,
 		errAuthorizationError: 401,
 		errAccessDenyError:    403,
@@ -79,7 +80,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.5"
+	serverVersion = "v0.6"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _

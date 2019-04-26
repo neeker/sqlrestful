@@ -1,10 +1,16 @@
-FROM gitlab.snz1.cn:2008/go/cgobuild:v1.0
+FROM gitlab.snz1.cn:2008/go/cgobuild:v2.0
 
 ENV TZ=Asia/Shanghai
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
 
-ADD . /tmp/sqlrestful
+ADD examples/sqlite.hcl /test/
+
+ADD *.go /tmp/sqlrestful/
+
+ADD *.mod /tmp/sqlrestful/
+
+ADD *.mod /tmp/sqlrestful/
 
 RUN cd /tmp/sqlrestful && \
    CGO_ENABLED=1 GO111MODULE=on \
@@ -12,12 +18,9 @@ RUN cd /tmp/sqlrestful && \
 
 RUN cp -f /tmp/sqlrestful/sqlrestful /usr/local/bin
 
-RUN mkdir -p /test && \
-    cp -R /tmp/sqlrestful/swagger2 /swagger2 && \
-    cp /tmp/sqlrestful/examples/*.hcl /test/
+ADD /swagger2 /swagger2
 
-RUN rm -rf /tmp/sqlrestful && \
-   mkdir -p /sqlrestful
+RUN rm -rf /tmp/sqlrestful
 
 ENTRYPOINT ["sqlrestful"]
 

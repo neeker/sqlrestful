@@ -57,7 +57,7 @@ func main() {
 	if *flagRSAPrivkey == "" || *flagJWTSecret == "" {
 		fmt.Printf("  JWT RSA私钥: %s \n", color.RedString("<未配置>"))
 		fmt.Printf("  JWT 安全令牌: %s \n", color.RedString("<未配置>"))
-		fmt.Printf("  JWT 令牌期限: %s秒 \n", color.GreenString(strconv.Itoa(*flagJWTExpires)))
+		fmt.Printf("  JWT 令牌期限: %s \n", color.RedString("<未生效>"))
 	} else {
 		fmt.Printf("  JWT RSA私钥: %s \n", color.GreenString(*flagRSAPrivkey))
 		fmt.Printf("  JWT 安全令牌: %s \n", color.GreenString(*flagJWTSecret))

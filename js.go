@@ -182,9 +182,10 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 			"code": 			respCode,
 			"body":       string(resp.Body()),
 		}, nil
-	} else {
-		return respData, nil
+
 	}
+	
+	return respData, nil
 
 }
 

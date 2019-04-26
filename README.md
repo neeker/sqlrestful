@@ -36,7 +36,8 @@
  - [x] 内置`Swagger`接口文档界面（`Swagger2.0`支持）
  - [x] 为Restful微服务接口提供内置的`Redis`缓存配置。
  - [x] 配置脚本支持完整的`Javascript ECMAScript 5.1`规范
- - [ ] 加入oracle、db2等商用数据库支持。
+ - [x] 动态查询实现提供器支持不同参数的SQL实现分支
+ - [x] 提供oci驱动支持Oracle数据库（具体参见【[数据库支持列表](docs/db.md)】）
 
 ## 入门文档
 

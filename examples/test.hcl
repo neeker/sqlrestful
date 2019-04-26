@@ -65,7 +65,7 @@ table_item {
   get {
 
     //返回对象类型：object表示单个对象
-    type = "object"
+    result = "object"
 
     //概述
     summary = "获取指定名称的数据表信息"

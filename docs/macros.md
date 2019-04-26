@@ -30,7 +30,7 @@ macro_define {
   include = ["_boot"]
 
   //返回值类型：list（列表，默认）、object（对象）、page（分页）
-  type = "list"
+  result = "list"
 
   //校验表达式：参见<https://github.com/asaskevich/govalidator>
   validators {
@@ -55,7 +55,7 @@ macro_define {
   }
 
 
-  //表示total与exec的脚本类型，默认为sql
+  //表示total与exec的脚本类型：sql（默认），js，exec（命令）
   impl = "sql"
 
   //SQL执行变量绑定，impl = "sql"时生效
@@ -64,6 +64,17 @@ macro_define {
     sql_offset = "$input.offset" //默认为0
     sql_limit = "$input.limit"   //默认为0
   }
+
+  //提供待执行的脚本（JS）
+  provider = <<JS
+  (function(){
+    if ($result = "total") {
+      return "..."
+    } else {
+      return "..."
+    }
+  })()
+  JS
 
   //分页对象的总记录数，此属性存在则type类型强制为page
   total = <<SQL
@@ -88,7 +99,7 @@ macro_define {
   JS
 
   //返回数据处理，enclosed表示接口返回信封封装（默认），origin表示原样返回（不封装）
-  //null表示不返回数据（仅返回封装头）
+  //null表示不返回数据（仅返回封装头），redirect表示跳转到返回地址
   ret = "enclosed"
 
 }

@@ -1,5 +1,6 @@
+# 数据库支持列表
 
-### 数据库驱动及连接串
+* 支持的数据库及连接DSN：
 
 | 数据库 | 连接串 |
 ---------| ------ |
@@ -16,3 +17,5 @@
 |         | `odbc:server=localhost;user id=sa;database=master;app name=MyAppName` |
 | `hdb` (SAP HANA) |   `hdb://user:password@host:port` |
 | `clickhouse` (Yandex ClickHouse) |   `tcp://host1:9000?username=user&password=qwerty&database=clicks&read_timeout=10&write_timeout=20&alt_hosts=host2:9000,host3:9000` |
+| `oci8`(Oracle)  | `username/password@host:port/sid` |
+

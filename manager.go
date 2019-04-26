@@ -46,13 +46,13 @@ type Manager struct {
 
 func fixMacro(v *Macro) error {
 	if len(v.Total) > 0 {
-		v.Type = "page"
+		v.Result = "page"
 	}
 
-	if v.Type == "" {
-		v.Type = "list"
+	if v.Result == "" {
+		v.Result = "list"
 	} else {
-		v.Type = strings.ToLower(v.Type)
+		v.Result = strings.ToLower(v.Result)
 	}
 
 	if v.Impl == "" {
@@ -76,11 +76,11 @@ func fixMacro(v *Macro) error {
 	}
 
 	switch {
-	case v.Type == "list":
-	case v.Type == "object":
-	case v.Type == "page":
+	case v.Result == "list":
+	case v.Result == "object":
+	case v.Result == "page":
 	default:
-		v.Type = "list"
+		v.Result = "list"
 	}
 
 	if v.Summary == "" {
@@ -175,12 +175,15 @@ func NewManager(configpath string) (*Manager, error) {
 					childm.Methods = []string{k}
 					childm.name = v.name + "." + strings.ToLower(k)
 					childm.Path = v.Path
+					if childm.Include == nil {
+						childm.Include = v.Include
+					} else if v.Include != nil {
+						childm.Include = append(childm.Include, v.Include[0:]...)
+					}
 					if childm.Tags == nil {
 						childm.Tags = v.Tags
-					} else {
-						for _, t := range v.Tags {
-							childm.Tags = append(childm.Tags, t)
-						}
+					} else if v.Tags != nil {
+						childm.Tags = append(childm.Tags, v.Tags[0:]...)
 					}
 					fixMacro(childm)
 				}
@@ -205,7 +208,7 @@ func (m *Manager) Size() int {
 	return len(m.macros)
 }
 
-// List - return a list of registered macros
+// Names - return a list of registered macros
 func (m *Manager) Names() (ret []string) {
 	for k := range m.macros {
 		ret = append(ret, k)

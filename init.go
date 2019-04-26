@@ -39,6 +39,7 @@ import (
 	_ "github.com/kshvakov/clickhouse"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-oci8"
 
 	"github.com/alash3al/go-color"
 	"github.com/jmoiron/sqlx"

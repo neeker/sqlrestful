@@ -198,13 +198,13 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	}
 
-	inline_tag := "z.内置接口"
+	inlineTag := "z.内置接口"
 
-	tagsMap[inline_tag] = "inline implements"
+	tagsMap[inlineTag] = "inline implements"
 
 	pathsMap["/health"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "心跳检测",
 			"operationId": "inline_helath",
 			"consumes":    []string{"application/json"},
@@ -223,7 +223,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/clear_caches"] = map[string]interface{}{
 		"post": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "清理所有缓存数据",
 			"operationId": "inline_clear_caches",
 			"consumes":    []string{"application/json"},
@@ -248,7 +248,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/v2/api-docs"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "Swagger文档接口",
 			"operationId": "inline_v2_api_docs",
 			"consumes":    []string{"application/json"},
@@ -267,7 +267,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/webjars"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "SwaggerUI资源",
 			"operationId": "inline_webjars",
 			"consumes":    []string{"text/html"},
@@ -283,7 +283,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/webjars"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "SwaggerUI静态资源",
 			"operationId": "inline_webjars",
 			"consumes":    []string{"text/html"},
@@ -299,7 +299,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/swagger-resources"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "SwaggerUI配置资源",
 			"operationId": "inline_swagger_resources",
 			"consumes":    []string{"text/html"},
@@ -315,7 +315,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 	pathsMap["/swagger-ui.html"] = map[string]interface{}{
 		"get": map[string]interface{}{
-			"tags":        []string{inline_tag},
+			"tags":        []string{inlineTag},
 			"summary":     "SwaggerUI界面",
 			"operationId": "inline_swagger_ui",
 			"consumes":    []string{"text/html"},
@@ -456,6 +456,8 @@ func routeExecMacro(c echo.Context) error {
 		input["http_"+strings.Replace(strings.ToLower(k), "-", "_", -1)] = v[0]
 	}
 
+	input["http_method"] = c.Request().Method;
+
 	out, err := macro.Call(input, keyInput)
 
 	if err != nil {
@@ -471,16 +473,39 @@ func routeExecMacro(c echo.Context) error {
 
 	if macro.Ret == "origin" {
 		return c.JSON(200, out)
-	} else if out != nil && macro.Ret != "null" {
-		return c.JSON(200, map[string]interface{}{
-			"code":    0,
-			"message": "操作成功！",
-			"data":    out,
-		})
-	} else {
+	} 
+	
+	if macro.Ret == "redirect" {
+		switch out.(type) {
+		case string:
+			return c.Redirect(302, out.(string))
+		default:
+			return c.JSON(200, map[string]interface{}{
+				"code":    500,
+				"message": "返回值不是有效的网址！",
+				"data": out,
+			})
+		}
+	} 
+
+	if macro.Ret == "null" {
 		return c.JSON(200, map[string]interface{}{
 			"code":    0,
 			"message": "操作成功！",
 		})
 	}
+	
+	if out != nil {
+		return c.JSON(200, map[string]interface{}{
+			"code":    0,
+			"message": "操作成功！",
+			"data":    out,
+		})
+	}
+
+	return c.JSON(200, map[string]interface{}{
+		"code":    0,
+		"message": "操作成功！",
+	})
+
 }

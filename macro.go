@@ -30,6 +30,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"reflect"
+	"strconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -52,6 +54,7 @@ type Macro struct {
 	Impl        string
 	Ret         string
 	Exec        string
+	Provider    string
 	Aggregate   []string
 	Transformer string
 	Tags        []string
@@ -61,7 +64,7 @@ type Macro struct {
 	Path string
 
 	Total string
-	Type  string
+	Result  string
 
 	Get    *Macro
 	Post   *Macro
@@ -134,12 +137,17 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		return nil, errValidationError
 	}
 
-	if len(m.Total) > 0 {
-		if input["offset"] == nil {
-			input["offset"] = int64(0)
+	if m.Result == "page" {
+		if input["offset"] == nil || input["offset"] == ""{
+			input["offset"] = "0"
 		}
-		if input["limit"] == nil {
-			input["limit"] = int64(0)
+		if input["limit"] == nil || input["limit"] == "" {
+			input["limit"] = "0"
+		} else {
+			_, err = strconv.Atoi(input["limit"].(string))
+			if err != nil {
+				input["limit"] = "0"
+			}
 		}
 	}
 
@@ -171,20 +179,61 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		if err != nil {
 			return nil, err
 		}
-	} else if len(m.Total) > 0 {
-		if input["offset"] == nil {
-			input["offset"] = int64(0)
+	}
+	
+	pageTotal  := m.Total
+	execScript := m.Exec
+	scriptImpl := m.Impl
+	
+	if m.Provider != "" {
+		resolvedVar, err := m.resolveExecScript(m.Provider, input);
+
+		if err != nil {
+			return nil, err
 		}
-		if input["limit"] == nil {
-			input["limit"] = int64(0)
+
+		switch resolvedVar.(type) {
+		case string:
+			execScript = resolvedVar.(string)
+		case []string:
+			for _, v := range resolvedVar.([]string) {
+				execScript = execScript + "\n" + v
+			}
+		case map[string]interface{}:
+			pageTotal = resolvedVar.(map[string]interface{})["total"].(string)
+			execScript = resolvedVar.(map[string]interface{})["exec"].(string)
+			if resolvedVar.(map[string]interface{})["impl"] != nil &&
+				resolvedVar.(map[string]interface{})["impl"].(string) != "" {
+				scriptImpl = resolvedVar.(map[string]interface{})["impl"].(string)
+			}
+		default:
+			fmt.Printf("resolvedVar name = %s\n", reflect.TypeOf(resolvedVar).Name())
+			v, _ := json.Marshal(resolvedVar)
+			return nil, fmt.Errorf("%s provider return error type: %s", m.name, string(v))
+		}
+	}
+	
+	if len(pageTotal) > 0 {
+		var resultLimit int
+		if input["offset"] == nil || input["offset"] == "" {
+			input["offset"] = "0"
+		}
+		if input["limit"] == nil || input["limit"] == "" {
+			input["limit"] = "0"
+		} else {
+			resultLimit, err = strconv.Atoi(input["limit"].(string))
+			if err != nil {
+				resultLimit = 0
+				input["limit"] = "0"
+			}
 		}
 
 		var total int64
 
-		if m.Impl == "js" {
-			total, err = m.execJavaScriptTotal(m.Total, input)
+		if scriptImpl == "js" {
+			total, err = m.execJavaScriptTotal(pageTotal, input)
 		} else {
-			total, err = m.execSQLTotal(strings.Split(strings.TrimSpace(m.Total), *flagSQLSeparator), input)
+			total, err = m.execSQLTotal(strings.Split(strings.TrimSpace(pageTotal), "---"), input)
 		}
 
 		if err != nil {
@@ -196,22 +245,26 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		pageRet["offset"] = input["offset"]
 		pageRet["total"] = total
 
-		if m.Impl == "js" {
-			out, err = m.execJavaScript(m.Total, input)
-		} else {
-			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
-		}
+		fmt.Printf("offset = %d, total = %d",  requestLimit, total )
 
-		if err != nil {
-			return nil, err
-		}
+		if resultLimit > 0 && total > 0 {
+			if scriptImpl == "js" {
+				out, err = m.execJavaScript(execScript, input)
+			} else {
+				out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
+			}
 
-		out, err = m.transform(out)
-		if err != nil {
-			return nil, err
-		}
+			if err != nil {
+				return nil, err
+			}
 
-		pageRet["data"] = out
+			out, err = m.transform(out)
+			if err != nil {
+				return nil, err
+			}
+
+			pageRet["data"] = out
+		}
 
 		//设置缓存
 		if redisDb != nil && m.Cache != nil && len(m.Cache.Put) > 0 {
@@ -221,23 +274,27 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		return pageRet, nil
+	} 
+
+	if scriptImpl == "js" {
+		out, err = m.execJavaScript(execScript, input)
 	} else {
-		if m.Impl == "js" {
-			out, err = m.execJavaScript(m.Exec, input)
-		} else {
-			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(m.Exec), *flagSQLSeparator), input)
-		}
+		out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
+	}
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		if m.Type == "object" && m.Impl != "js" {
+	if m.Result == "object" && scriptImpl == "sql" {
+		switch out.(type) {
+		case []map[string]interface{}:
 			tmp := out.([]map[string]interface{})
-			if len(tmp) == 0 {
-				return nil, errNoMacroFound
+			if len(tmp) < 1 {
+				return nil, errObjNotFound
 			}
-			out = out.([]map[string]interface{})[0]
+			out = tmp[0]
+		default:
 		}
 	}
 
@@ -262,7 +319,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	return out, nil
 }
 
-// execSQLQuery - execute the specified sql query
+// execSQLTotal - execute the specified sql query
 func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64, error) {
 	args, err := m.buildBind(input)
 	if err != nil {
@@ -358,10 +415,31 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 	return interface{}(ret), nil
 }
 
+// resolveExecScript - run the javascript function
+func (m *Macro) resolveExecScript(javascript string, input map[string]interface{}) (interface{}, error) {
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "provider",
+	})
+
+	val, err := vm.RunString(javascript)
+	if err != nil {
+		return nil, fmt.Errorf("run %s provider(js) error: %s", m.name, err.Error())
+	}
+
+	return val.Export(), nil
+}
+
+
 // execJavaScript - run the javascript function
 func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) (interface{}, error) {
 
-	vm := initJSVM(map[string]interface{}{"$input": input})
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "exec",
+	})
 
 	val, err := vm.RunString(javascript)
 	if err != nil {
@@ -373,7 +451,11 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 
 // execJavaScriptTotal - run the javascript total function
 func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interface{}) (int64, error) {
-	vm := initJSVM(map[string]interface{}{"$input": input})
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "total",
+	})
 
 	val, err := vm.RunString(javascript)
 	if err != nil {
@@ -420,7 +502,11 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 		return data, nil
 	}
 
-	vm := initJSVM(map[string]interface{}{"$result": data})
+	vm := initJSVM(map[string]interface{}{
+		"$result": data,
+		"$name": m.name,
+		"$macro": "transformer",
+	})
 
 	v, err := vm.RunString(transformer)
 	if err != nil {
@@ -437,7 +523,11 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 		return true, nil
 	}
 
-	vm := initJSVM(map[string]interface{}{"$input": input})
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "authorizer",
+	})
 
 	val, err := vm.RunString(m.Authorizer)
 	if err != nil {
@@ -453,7 +543,7 @@ func (m *Macro) aggregate(input map[string]interface{}, inputKey map[string]inte
 	for _, k := range m.Aggregate {
 		macro := m.manager.Get(k)
 		if nil == macro {
-			err := fmt.Errorf("%s aggregate not existed macro(%s)!", m.name, k)
+			err := fmt.Errorf("%s aggregate not existed macro(%s)", m.name, k)
 			return nil, err
 		}
 		out, err := macro.Call(input, inputKey)
@@ -471,7 +561,11 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 		return nil, nil
 	}
 
-	vm := initJSVM(map[string]interface{}{"$input": input})
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "validators",
+	})
 
 	for k, src := range m.Validators {
 		val, err := vm.RunString(src)
@@ -493,7 +587,11 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 		return nil, nil
 	}
 
-	vm := initJSVM(map[string]interface{}{"$input": input})
+	vm := initJSVM(map[string]interface{}{
+		"$input": input,
+		"$name": m.name,
+		"$macro": "bind",
+	})
 	ret := map[string]interface{}{}
 
 	for k, src := range m.Bind {
@@ -513,7 +611,7 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 	for _, name := range m.Include {
 		macro := m.manager.Get(name)
 		if nil == macro {
-			return fmt.Errorf("%s include not existed macro(%s)!", m.name, name)
+			return fmt.Errorf("%s include not existed macro(%s)", m.name, name)
 		}
 		_, err := macro.Call(input, inputKey)
 		if err != nil {
