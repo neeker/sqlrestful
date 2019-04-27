@@ -48,7 +48,8 @@
 ## 开箱示例
 
 ```sh
-docker run -t --rm -p 80:80 snz1/sqlrestful \
+docker run -ti --rm -p 80:80 snz1/sqlrestful \
+  --name sqlrestful \
   -driver "sqlite3" \
   -dsn "/tmp/tmp.db?create=true" \
   -debug 3 \
