@@ -27,10 +27,10 @@
 package main
 
 import (
-	"net/http"
 	"strings"
 	"log"
-
+	"net/http"
+	
 	"github.com/labstack/echo"
 )
 
@@ -459,13 +459,18 @@ func routeClearCaches(c echo.Context) error {
 }
 
 // routeExecMacro - execute the requested macro
-func routeExecMacro(c echo.Context) error {
+func routeExecMacro(c echo.Context)(err error) {
 	macro := c.Get("macro").(*Macro)
 
 	input := make(map[string]interface{})
 	body := make(map[string]interface{})
 
 	keyInput := make(map[string]interface{})
+
+	tmpPath := c.Path()
+	if tmpPath == "" {
+		tmpPath = "/"
+	}
 
 	c.Bind(&body)
 
@@ -483,9 +488,19 @@ func routeExecMacro(c echo.Context) error {
 		keyInput[k] = c.Param(k)
 	}
 
-	for _, k := range c.FormParams() {
-		input[k] = c.FormValue(k)
-		keyInput[k] = c.FormValue(k)
+	{
+		formParams, err := c.FormParams()
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s %s route to %s prepare form error: %v\n", 
+					c.Request().Method, tmpPath, macro.name, err)
+			}
+		} else {
+			for k, _ := range formParams {
+				input[k] = c.FormValue(k)
+				keyInput[k] = c.FormValue(k)
+			}
+		}
 	}
 
 	headers := c.Request().Header
@@ -493,24 +508,18 @@ func routeExecMacro(c echo.Context) error {
 		input["http_"+strings.Replace(strings.ToLower(k), "-", "_", -1)] = v[0]
 	}
 
-	input["http_method"] = c.Request().Method;
-
-	tmpPath := c.Path()
-	if tmpPath == "" {
-		tmpPath = "/"
-	}
-
-	input["http_path"] = tmpPath
-	input["http_client_ip"] = c.RealIP()
-	input["http_scheme"] = c.Scheme()
-	
-	for cookie := range c.Cookies() {
+	for _, cookie := range c.Cookies() {
 		input["cookie_"+strings.Replace(strings.ToLower(cookie.Name), "-", "_", -1)] = cookie.Value
 	}
 
+	input["http_method"] = c.Request().Method;
+	input["http_path"] = tmpPath
+	input["http_client_ip"] = c.RealIP()
+	input["http_scheme"] = c.Scheme()
+
 	if *flagDebug > 2 {
 		log.Printf("%s %s route to %s:\n==input==\n%v\n==path_vars==\n%v\n", 
-			c.Request().Method, c.Path(), macro.name, input, keyInput)
+			c.Request().Method, tmpPath, macro.name, input, keyInput)
 	}
 
 	out, err := macro.Call(input, keyInput)
