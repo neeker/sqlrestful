@@ -113,9 +113,7 @@ func init() {
 		jwtSecret = *flagJWTSecret
 		jwtExpires = *flagJWTExpires
 
-	} else {
-		fmt.Println(color.RedString("[jwt] JWT 安全请求方式未启用！"))
-	}
+	} 
 
 	{
 		manager, err := NewManager(*flagAPIFile)
