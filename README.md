@@ -37,15 +37,26 @@
  - [x] 为Restful微服务接口提供内置的`Redis`缓存配置。
  - [x] 配置脚本支持完整的`Javascript ECMAScript 5.1`规范
  - [x] 动态查询实现提供器支持不同参数的SQL实现分支
- - [x] 提供oci驱动支持Oracle数据库（具体参见【[数据库支持列表](docs/db.md)】）
+ - [x] 提供oci驱动支持Oracle数据库（参见【[数据库支持列表](docs/db.md)】）
 
-## 入门文档
+## 快速入门
 
- - [半小时实现一个完整的微服务接口](docs/start.md)
- - [`SQLRestful`开发及`HCL`配置说明](docs/macros.md)
- - [什么是`HCL`配置语言](docs/base.md)
+ - [`SQLRestful`开发入门示例](docs/start.md)
+ - [`SQLRestful`开发及配置说明](docs/macros.md)
+ - [`HCL`配置语言快速入门](docs/hcl.md)
 
-## 快照截图
+## 开箱示例
+
+```sh
+docker run -t --rm -p 80:80 snz1/sqlrestful \
+  -driver "sqlite3" \
+  -dsn "/tmp/tmp.db?create=true" \
+  -config "/test/sqlite.hcl
+```
+
+> 此时打开<http://localhost/swagger-ui.html>查看示例实现接口文档。
+
+## 示例截图
 
 <div text-align="center">
 

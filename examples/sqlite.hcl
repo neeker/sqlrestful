@@ -15,6 +15,25 @@ _create_db {
 
 }
 
+root {
+
+  path = "/"
+
+  tags = [ "1.测试接口" ]
+
+  get {
+    impl = "js"
+
+    exec = <<JS
+    (function(){
+      return "/swagger-ui.html"
+    })()
+    JS
+
+    ret = "redirect"
+  }
+}
+
 //数据集接口
 dataxs {
 
@@ -39,7 +58,7 @@ dataxs {
         exec += " WHERE NAME like :express "
         total += " WHERE NAME like :express "
       }
-      exec += " ORDER BY NAME LIMIT :offset OFFSET :limit"
+      exec += " ORDER BY NAME LIMIT :limit OFFSET :offset"
       return {
         total: total,
         exec:  exec
@@ -71,11 +90,11 @@ dataxs {
 
     //执行插入并返回结果
     exec = <<SQL
-      REPLACE INTO datax(id, name, age, address) VALUES(:id, :name, :age, :address)
+      REPLACE INTO datax(id, name, age, address) VALUES(:id, :name, :age, :address);
       
       ---
 
-      SELECT * FROM datax WHERE id = :id
+      SELECT * FROM datax WHERE id = :id;
     SQL
 
     //返回类型
@@ -127,11 +146,11 @@ datax {
     }
 
     exec = <<SQL
-      UPDATE datax SET name = :name, age = :age, address = :address WHERE id = :id
+      UPDATE datax SET name = :name, age = :age, address = :address WHERE id = :id;
 
       ---
 
-      SELECT * FROM datax WHERE id = :id
+      SELECT * FROM datax WHERE id = :id;
     SQL
 
     result = "object"
@@ -149,11 +168,11 @@ datax {
 
     //执行删除
     exec = <<SQL
-      DELETE FROM datax WHERE id = :id
+      DELETE FROM datax WHERE id = :id;
     SQL
 
     //不返回数据
-    ret = "null"
+    ret = "nil"
 
   }
 

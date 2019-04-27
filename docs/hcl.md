@@ -1,4 +1,4 @@
-# 什么是`HCL`配置语言
+# `HCL`配置语言k快速入门
 
 HCL配置语言请参见[HCL官网](https://github.com/hashicorp/hcl)。
 

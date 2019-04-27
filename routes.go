@@ -29,6 +29,7 @@ package main
 import (
 	"net/http"
 	"strings"
+	"log"
 
 	"github.com/labstack/echo"
 )
@@ -40,14 +41,25 @@ func routeIndex(c echo.Context) error {
 
 // customer HTTPErrorHandler
 func customHTTPErrorHandler(err error, c echo.Context) {
+
 	code := http.StatusInternalServerError
 	if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 	}
-	c.Logger().Error(c.JSON(code, map[string]interface{}{
+
+	if *flagDebug > 0 {
+		tmpPath := c.Path()
+		if tmpPath == "" {
+			tmpPath = "/"
+		}
+		log.Printf("%s %s %d: %v", c.Request().Method, tmpPath, code, err)
+	}
+
+	c.JSON(code, map[string]interface{}{
 		"code":    code,
 		"message": err.Error(),
-	}))
+	})
+
 }
 
 func getMacroBindParams(macro *Macro, method string) []map[string]interface{} {
@@ -62,14 +74,20 @@ func getMacroBindParams(macro *Macro, method string) []map[string]interface{} {
 		bindInput = make(map[string]string)
 	}
 
+	pathIds := map[string]bool{}
+
 	for _, k := range strings.Split(macro.Path, "/") {
 		if strings.HasPrefix(k, ":") {
-			bindInput[k[1:]] = "path"
+			pathID := k[1:]
+			pathIds[pathID] = true
+			bindInput[pathID] = "path"
 		}
 	}
 
 	ret := []map[string]interface{}{}
-	if len(bindInput) > 0 {
+
+	switch method {
+	case "get", "delete":
 		for k, v := range bindInput {
 			ret = append(ret, map[string]interface{}{
 				"name":        k,
@@ -79,7 +97,17 @@ func getMacroBindParams(macro *Macro, method string) []map[string]interface{} {
 				"type":        "string",
 			})
 		}
-	} else if method == "post" || method == "put" || method == "patch" {
+	default:
+		for k := range pathIds {
+			ret = append(ret, map[string]interface{}{
+				"name":        k,
+				"in":          "path",
+				"description": k,
+				"required":    false,
+				"type":        "string",
+			})
+		}
+
 		ret = append(ret, map[string]interface{}{
 			"name":        "body",
 			"in":          "body",
@@ -221,29 +249,31 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		},
 	}
 
-	pathsMap["/clear_caches"] = map[string]interface{}{
-		"post": map[string]interface{}{
-			"tags":        []string{inlineTag},
-			"summary":     "清理所有缓存数据",
-			"operationId": "inline_clear_caches",
-			"consumes":    []string{"application/json"},
-			"produces":    []string{"application/json;charset=UTF-8"},
-			"parameters":  map[string]interface{}{},
-			"responses": map[string]interface{}{
-				"200": map[string]interface{}{
-					"description": "OK",
-					"schema": map[string]interface{}{
-						"$ref": "#/definitions/result",
+	if redisDb != nil {
+		pathsMap["/clear_caches"] = map[string]interface{}{
+			"post": map[string]interface{}{
+				"tags":        []string{inlineTag},
+				"summary":     "清理所有缓存数据",
+				"operationId": "inline_clear_caches",
+				"consumes":    []string{"application/json"},
+				"produces":    []string{"application/json;charset=UTF-8"},
+				"parameters":  map[string]interface{}{},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"schema": map[string]interface{}{
+							"$ref": "#/definitions/result",
+						},
 					},
-				},
-				"403": map[string]interface{}{
-					"description": "无权访问",
-					"schema": map[string]interface{}{
-						"$ref": "#/definitions/error",
+					"403": map[string]interface{}{
+						"description": "无权访问",
+						"schema": map[string]interface{}{
+							"$ref": "#/definitions/error",
+						},
 					},
 				},
 			},
-		},
+		}
 	}
 
 	pathsMap["/v2/api-docs"] = map[string]interface{}{
@@ -265,68 +295,70 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		},
 	}
 
-	pathsMap["/webjars"] = map[string]interface{}{
-		"get": map[string]interface{}{
-			"tags":        []string{inlineTag},
-			"summary":     "SwaggerUI资源",
-			"operationId": "inline_webjars",
-			"consumes":    []string{"text/html"},
-			"produces":    []string{"text/html;charset=UTF-8"},
-			"parameters":  map[string]interface{}{},
-			"responses": map[string]interface{}{
-				"200": map[string]interface{}{
-					"description": "OK",
+	if *flagSwagger { 
+		pathsMap["/webjars"] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{inlineTag},
+				"summary":     "SwaggerUI资源",
+				"operationId": "inline_webjars",
+				"consumes":    []string{"text/html"},
+				"produces":    []string{"text/html;charset=UTF-8"},
+				"parameters":  map[string]interface{}{},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+					},
 				},
 			},
-		},
-	}
+		}
 
-	pathsMap["/webjars"] = map[string]interface{}{
-		"get": map[string]interface{}{
-			"tags":        []string{inlineTag},
-			"summary":     "SwaggerUI静态资源",
-			"operationId": "inline_webjars",
-			"consumes":    []string{"text/html"},
-			"produces":    []string{"text/html;charset=UTF-8"},
-			"parameters":  map[string]interface{}{},
-			"responses": map[string]interface{}{
-				"200": map[string]interface{}{
-					"description": "OK",
+		pathsMap["/webjars"] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{inlineTag},
+				"summary":     "SwaggerUI静态资源",
+				"operationId": "inline_webjars",
+				"consumes":    []string{"text/html"},
+				"produces":    []string{"text/html;charset=UTF-8"},
+				"parameters":  map[string]interface{}{},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+					},
 				},
 			},
-		},
-	}
+		}
 
-	pathsMap["/swagger-resources"] = map[string]interface{}{
-		"get": map[string]interface{}{
-			"tags":        []string{inlineTag},
-			"summary":     "SwaggerUI配置资源",
-			"operationId": "inline_swagger_resources",
-			"consumes":    []string{"text/html"},
-			"produces":    []string{"text/html;charset=UTF-8"},
-			"parameters":  map[string]interface{}{},
-			"responses": map[string]interface{}{
-				"200": map[string]interface{}{
-					"description": "OK",
+		pathsMap["/swagger-resources"] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{inlineTag},
+				"summary":     "SwaggerUI配置资源",
+				"operationId": "inline_swagger_resources",
+				"consumes":    []string{"text/html"},
+				"produces":    []string{"text/html;charset=UTF-8"},
+				"parameters":  map[string]interface{}{},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+					},
 				},
 			},
-		},
-	}
+		}
 
-	pathsMap["/swagger-ui.html"] = map[string]interface{}{
-		"get": map[string]interface{}{
-			"tags":        []string{inlineTag},
-			"summary":     "SwaggerUI界面",
-			"operationId": "inline_swagger_ui",
-			"consumes":    []string{"text/html"},
-			"produces":    []string{"text/html;charset=UTF-8"},
-			"parameters":  map[string]interface{}{},
-			"responses": map[string]interface{}{
-				"200": map[string]interface{}{
-					"description": "OK",
+		pathsMap["/swagger-ui.html"] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{inlineTag},
+				"summary":     "SwaggerUI界面",
+				"operationId": "inline_swagger_ui",
+				"consumes":    []string{"text/html"},
+				"produces":    []string{"text/html;charset=UTF-8"},
+				"parameters":  map[string]interface{}{},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+					},
 				},
 			},
-		},
+		}
 	}
 
 	retmap := []map[string]interface{}{}
@@ -451,12 +483,35 @@ func routeExecMacro(c echo.Context) error {
 		keyInput[k] = c.Param(k)
 	}
 
+	for _, k := range c.FormParams() {
+		input[k] = c.FormValue(k)
+		keyInput[k] = c.FormValue(k)
+	}
+
 	headers := c.Request().Header
 	for k, v := range headers {
 		input["http_"+strings.Replace(strings.ToLower(k), "-", "_", -1)] = v[0]
 	}
 
 	input["http_method"] = c.Request().Method;
+
+	tmpPath := c.Path()
+	if tmpPath == "" {
+		tmpPath = "/"
+	}
+
+	input["http_path"] = tmpPath
+	input["http_client_ip"] = c.RealIP()
+	input["http_scheme"] = c.Scheme()
+	
+	for cookie := range c.Cookies() {
+		input["cookie_"+strings.Replace(strings.ToLower(cookie.Name), "-", "_", -1)] = cookie.Value
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("%s %s route to %s:\n==input==\n%v\n==path_vars==\n%v\n", 
+			c.Request().Method, c.Path(), macro.name, input, keyInput)
+	}
 
 	out, err := macro.Call(input, keyInput)
 
@@ -465,6 +520,9 @@ func routeExecMacro(c echo.Context) error {
 		if code < 1 {
 			code = 500
 		}
+		if *flagDebug > 0 {
+			log.Printf("call %s error: %v\n", macro.name, err)
+		}
 		return c.JSON(code, map[string]interface{}{
 			"code":    code,
 			"message": err.Error(),
@@ -472,14 +530,27 @@ func routeExecMacro(c echo.Context) error {
 	}
 
 	if macro.Ret == "origin" {
+		if *flagDebug > 2 {
+			log.Printf("%s ret is origin\n", macro.name)
+		}
+
 		return c.JSON(200, out)
 	} 
 	
 	if macro.Ret == "redirect" {
+		if *flagDebug > 2 {
+			log.Printf("%s ret is redirect\n", macro.name)
+		}
+
 		switch out.(type) {
 		case string:
 			return c.Redirect(302, out.(string))
 		default:
+
+			if *flagDebug > 0 {
+				log.Printf("%s result is not url: %v\n", macro.name, out)
+			}
+	
 			return c.JSON(200, map[string]interface{}{
 				"code":    500,
 				"message": "返回值不是有效的网址！",
@@ -488,19 +559,36 @@ func routeExecMacro(c echo.Context) error {
 		}
 	} 
 
-	if macro.Ret == "null" {
+	if macro.Ret == "nil" {
+
+		if *flagDebug > 2 {
+			log.Printf("%s ret is defined nil\n", macro.name)
+		}
+
 		return c.JSON(200, map[string]interface{}{
 			"code":    0,
 			"message": "操作成功！",
 		})
+
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("%s ret is normal\n", macro.name)
 	}
 	
 	if out != nil {
+		if *flagDebug > 2 {
+			log.Printf("%s result: %s\n", macro.name, out)
+		}
 		return c.JSON(200, map[string]interface{}{
 			"code":    0,
 			"message": "操作成功！",
 			"data":    out,
 		})
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("%s result is nil\n", macro.name)
 	}
 
 	return c.JSON(200, map[string]interface{}{

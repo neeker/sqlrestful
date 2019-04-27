@@ -38,7 +38,6 @@ import (
 var (
 	flagDBDriver       = flag.String("driver", "", "SQL类型")
 	flagDBDSN          = flag.String("dsn", "", "SQL数据源配置")
-	flagAPIFile        = flag.String("config", "./*.hcl", "缺省的配置文件路径（多个文件使用逗号分隔）")
 	flagRedisURL       = flag.String("redis", "", "Redis连接：redis://:password@<redis host>:6379/0")
 	flagRESTListenAddr = flag.String("port", ":80", "HTTP监听端口")
 	flagWorkers        = flag.Int("workers", runtime.NumCPU(), "工作线程数量")
@@ -47,11 +46,13 @@ var (
 	flagJWTExpires     = flag.Int("jwt-expires", 1800, "JWT安全令牌")
 	flagName           = flag.String("name", "SQLRestful", "服务名称")
 	flagBasePath       = flag.String("base", "/", "服务地址")
-	flagDescription    = flag.String("desc", "SQLRestful，您的云原生应用生产力工具！", "功能描述")
+	flagDescription    = flag.String("desc", "SQLRestful，您的云原生应用生产力工具！", "微服务接口功能描述")
 	flagVersion        = flag.String("ver", "1.0", "实现版本")
 	flagAuthor         = flag.String("author", "痞子飞猪", "维护人员")
 	flagEmail          = flag.String("email", "13317312768@qq.com", "联系邮箱")
 	flagDebug          = flag.Int("debug", 0, "调试模式级别：0关闭、1普通、2，详细")
+	flagSwagger        = flag.Bool("swagger", false, "是否开启内置SwaggerUI文档")
+	flagAPIFile        = flag.String("config", "./*.hcl", "缺省的配置文件路径（多个逗号分隔）")
 )
 
 var (

@@ -99,7 +99,7 @@ macro_define {
   JS
 
   //返回数据处理，enclosed表示接口返回信封封装（默认），origin表示原样返回（不封装）
-  //null表示不返回数据（仅返回封装头），redirect表示跳转到返回地址
+  //nil表示不返回数据（仅返回封装头），redirect表示跳转到返回地址
   ret = "enclosed"
 
 }

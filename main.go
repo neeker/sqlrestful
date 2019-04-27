@@ -46,7 +46,7 @@ func main() {
 	}
 
 	fmt.Printf("  工作线程: %s \n", color.GreenString(strconv.Itoa(*flagWorkers)))
-	fmt.Printf("  监听地址: %s \n", color.GreenString(*flagRESTListenAddr))
+	fmt.Printf("  监听端口: %s \n", color.GreenString(*flagRESTListenAddr))
 
 	if *flagRedisURL == "" {
 		fmt.Printf("  Redis 缓存: %s \n", color.RedString("<未配置>"))
@@ -61,7 +61,7 @@ func main() {
 	} else {
 		fmt.Printf("  JWT RSA私钥: %s \n", color.GreenString(*flagRSAPrivkey))
 		fmt.Printf("  JWT 安全令牌: %s \n", color.GreenString(*flagJWTSecret))
-		fmt.Printf("  JWT 令牌期限: %s \n", color.GreenString(strconv.Itoa(*flagJWTExpires)+"秒"))
+		fmt.Printf("  JWT 令牌期限: %s \n", color.GreenString(strconv.Itoa(*flagJWTExpires) + "秒"))
 	}
 
 	fmt.Printf("         \n")
@@ -71,6 +71,19 @@ func main() {
 	fmt.Printf("  实现版本: %s\n", color.GreenString(*flagVersion))
 	fmt.Printf("  维护人员: %s\n", color.GreenString(*flagAuthor))
 	fmt.Printf("  联系邮箱: %s\n", color.GreenString(*flagEmail))
+
+	if *flagSwagger {
+		fmt.Printf("  SwaggerUI: %s\n", color.GreenString("http://" + *flagRESTListenAddr + "/swagger-ui.html"))
+	} else {
+		fmt.Printf("  SwaggerUI: %s\n", color.RedString("<未配置>"))
+	}
+
+	if *flagDebug > 0 {
+		fmt.Printf("  输出日志: %s\n", color.RedString("已开启" + strconv.Itoa(*flagDebug) + "级日志"))
+	}
+
+	fmt.Println("")
+	fmt.Println("")
 
 	err := make(chan error)
 

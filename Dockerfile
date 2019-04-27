@@ -4,7 +4,7 @@ ENV TZ=Asia/Shanghai
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
 
-ADD examples/sqlite.hcl /test/
+ADD examples/sqlite.hcl /examples/
 
 ADD *.go /tmp/sqlrestful/
 
