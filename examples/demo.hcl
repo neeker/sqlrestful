@@ -15,7 +15,7 @@ _create_db {
 test {
 
   //定义接口标签
-  tags = ["1.入门示例接口"]
+  tags = ["1.示例接口"]
 
   //引入自动建表
   include = ["_create_db"]
@@ -25,6 +25,9 @@ test {
 
   //获取分页数据接口
   get {
+
+    //概要描述
+    summary = "获取分页数据"
 
     //绑定参数
     bind {
@@ -47,6 +50,10 @@ test {
   //新增数据
   post {
 
+    //概要描述
+    summary = "新增数据"
+
+    //参数绑定
     bind {
       name = "$input.name"
       hello = "$input.hello"
@@ -69,3 +76,4 @@ test {
   }
 
 }
+
