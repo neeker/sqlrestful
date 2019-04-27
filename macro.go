@@ -30,8 +30,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"reflect"
 	"strconv"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -42,6 +42,12 @@ type Cache struct {
 	Evit []string
 	Idle uint32
 	Live uint32
+}
+
+// 格式
+type RRModel struct {
+	input map[string]interface{}
+	result map[string]interface{}
 }
 
 // Macro - a macro configuration
@@ -58,6 +64,7 @@ type Macro struct {
 	Aggregate   []string
 	Transformer string
 	Tags        []string
+	Model      *RRModel
 
 	Summary string
 
@@ -97,8 +104,16 @@ func putCacheData(cacheNames []string, cacheKey string, val interface{}) (bool, 
 		jsonData, _ := json.Marshal(val)
 		ret, err = redisDb.HSet(k, cacheKey, string(jsonData)).Result()
 		if err != nil {
+			if *flagDebug > 1 {
+				log.Printf("putcache(key=%s in %s) error: %v\n", cacheKey, k, err)
+			}
 			return false, err
 		}
+
+		if *flagDebug > 2 {
+			log.Printf("putcache(key=%s in %s) data: %s\n", cacheKey, k, jsonData)
+		}
+
 	}
 	return ret, nil
 }
@@ -111,8 +126,16 @@ func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
 			var outData interface{}
 			err := json.Unmarshal([]byte(jsonData), &outData)
 			if err != nil {
+				if *flagDebug > 1 {
+					log.Printf("getcache(key=%s in %s) error: %v\n", cacheKey, k, err)
+				}
 				return nil, err
 			}
+
+			if *flagDebug > 2 {
+				log.Printf("getcache((key=%s in %s)) data: %s\n", cacheKey, k, jsonData)
+			}
+
 			return outData, nil
 		}
 	}
@@ -165,6 +188,9 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 				return nil, err
 			}
 			if out != nil {
+				if *flagDebug > 1 {
+					log.Printf("%s getted data in cache(%s): %v\n", m.name, cacheKey, out)
+				}
 				return out, nil
 			}
 		}
@@ -195,9 +221,17 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		switch resolvedVar.(type) {
 		case string:
 			execScript = resolvedVar.(string)
+			
+			if *flagDebug > 1 {
+				log.Printf("%s resolved exec script:\n\n%s\n\n", m.name, execScript)
+			}
+
 		case []string:
 			for _, v := range resolvedVar.([]string) {
 				execScript = execScript + "\n" + v
+			}
+			if *flagDebug > 1 {
+				log.Printf("%s resolved exec sql:\n\n%s\n\n", m.name, execScript)
 			}
 		case map[string]interface{}:
 			pageTotal = resolvedVar.(map[string]interface{})["total"].(string)
@@ -206,8 +240,15 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 				resolvedVar.(map[string]interface{})["impl"].(string) != "" {
 				scriptImpl = resolvedVar.(map[string]interface{})["impl"].(string)
 			}
+
+			if *flagDebug > 1 {
+				log.Printf("%s resolved exec %s:\n\n%s\n\n", m.name, scriptImpl, execScript)
+				if len(pageTotal) > 0 {
+					log.Printf("%s resolved total %s:\n\n%s\n\n", m.name, scriptImpl, execScript)
+				}
+			}
+
 		default:
-			fmt.Printf("resolvedVar name = %s\n", reflect.TypeOf(resolvedVar).Name())
 			v, _ := json.Marshal(resolvedVar)
 			return nil, fmt.Errorf("%s provider return error type: %s", m.name, string(v))
 		}
@@ -237,15 +278,20 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s total error: %v\n", m.name, err)
+			}
 			return nil, err
+		}
+
+		if *flagDebug > 1 {
+			log.Printf("%s total result: %d\n", m.name, total)
 		}
 
 		pageRet := make(map[string]interface{})
 
 		pageRet["offset"] = input["offset"]
 		pageRet["total"] = total
-
-		fmt.Printf("offset = %d, total = %d",  requestLimit, total )
 
 		if resultLimit > 0 && total > 0 {
 			if scriptImpl == "js" {
@@ -258,9 +304,20 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 				return nil, err
 			}
 
+			if *flagDebug > 1 {
+				log.Printf("%s exec result: %v\n", m.name, out)
+			}
+
 			out, err = m.transform(out)
 			if err != nil {
+				if *flagDebug > 0 {
+					log.Printf("%s transformer error: %v\n", m.name, err)
+				}
 				return nil, err
+			}
+
+			if *flagDebug > 1 {
+				log.Printf("%s transformer result: %v\n", m.name, out)
 			}
 
 			pageRet["data"] = out
@@ -283,25 +340,47 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	}
 
 	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("%s exec error: %v\n", m.name, err)
+		}
 		return nil, err
+	}
+
+	
+	if *flagDebug > 1 {
+		log.Printf("%s exec result: %v\n", m.name, out)
 	}
 
 	if m.Result == "object" && scriptImpl == "sql" {
 		switch out.(type) {
 		case []map[string]interface{}:
+			if *flagDebug > 1 {
+				log.Printf("%s exec origin result was list: %v\n", m.name, out)
+			}			
 			tmp := out.([]map[string]interface{})
 			if len(tmp) < 1 {
 				return nil, errObjNotFound
 			}
 			out = tmp[0]
 		default:
+			if *flagDebug > 0 {
+				log.Printf("%s exec origin result was not list: %v\n", m.name, out)
+			}			
 		}
 	}
 
 	out, err = m.transform(out)
 	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("%s transformer error: %v\n", m.name, err)
+		}			
 		return nil, err
 	}
+
+	if *flagDebug > 1 {
+		log.Printf("%s exec transformer result: %v\n", m.name, out)
+	}			
+
 
 	//设置缓存
 	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
@@ -328,6 +407,9 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 
 	conn, err := sqlx.Open(*flagDBDriver, *flagDBDSN)
 	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s total(sql) open database error: %v\n", m.name, err)
+		}
 		return 0, err
 	}
 	defer conn.Close()
@@ -338,19 +420,35 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 		}
 	}
 
-	for _, sql := range sqls[0 : len(sqls)-1] {
+	for i, sql := range sqls[0 : len(sqls)-1] {
 		sql = strings.TrimSpace(sql)
 		if "" == sql {
 			continue
 		}
-		if _, err := conn.NamedExec(sql, args); err != nil {
-			return 0, fmt.Errorf("run %s total(sql) error: %s", m.name, err.Error())
+		
+		if *flagDebug > 2 {
+			log.Printf("run %s total sql%d:\n==sql==%s\n==args==\n%v\n", m.name, i, sql, args)
 		}
+
+		if _, err := conn.NamedExec(sql, args); err != nil {
+			if *flagDebug > 0 {
+				log.Printf("run %s total sql%d error: %v\n==sql==\n%v\n", m.name, i, err, sql)
+			}
+			return 0, fmt.Errorf("run %s total(sql) error: %v", m.name, err)
+		}
+	}
+
+
+	if *flagDebug > 2 {
+		log.Printf("run %s total sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, len(sqls)-1, sqls[len(sqls)-1], args)
 	}
 
 	rows, err := conn.NamedQuery(sqls[len(sqls)-1], args)
 	if err != nil {
-		return 0, fmt.Errorf("run %s total(sql) error: %s", m.name, err.Error())
+		if *flagDebug > 1 {
+			log.Printf("run %s total sql%d error: %v\n==sql==\n%s\n", m.name, len(sqls)-1, err, sqls[len(sqls)-1])
+		}
+		return 0, fmt.Errorf("run %s total(sql) error: %v", m.name, err)
 	}
 	defer rows.Close()
 
@@ -376,6 +474,9 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 
 	conn, err := sqlx.Open(*flagDBDriver, *flagDBDSN)
 	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s exec(sql) open database error: %v\n", m.name, err)
+		}
 		return nil, err
 	}
 	defer conn.Close()
@@ -386,19 +487,37 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		}
 	}
 
-	for _, sql := range sqls[0 : len(sqls)-1] {
+	//先执行前面的SQL
+	for i, sql := range sqls[0 : len(sqls)-1] {
 		sql = strings.TrimSpace(sql)
 		if "" == sql {
 			continue
 		}
+			
+		if *flagDebug > 2 {
+			log.Printf("run %s exec sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, i, sql, args)
+		}
+	
 		if _, err := conn.NamedExec(sql, args); err != nil {
-			return nil, fmt.Errorf("run %s exec(sql) error: %s", m.name, err.Error())
+			if *flagDebug > 0 {
+				log.Printf("run %s exec sql%d error: %v\n==sql==\n%s\n", m.name, i, err, sql)
+			}
+			return nil, fmt.Errorf("run %s exec sql%d error: %v", m.name, i, err)
 		}
 	}
 
+	
+	if *flagDebug > 2 {
+		log.Printf("run %s exec sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, len(sqls)-1, sqls[len(sqls)-1], args)
+	}
+
+	//最后一个用于返回数据
 	rows, err := conn.NamedQuery(sqls[len(sqls)-1], args)
 	if err != nil {
-		return nil, fmt.Errorf("run %s exec(sql) error: %s", m.name, err.Error())
+		if *flagDebug > 1 {
+			log.Printf("run %s exec sql%d error: %v\n==sql==\n%s\n", m.name, len(sqls)-1, err, sqls[len(sqls)-1])
+		}
+		return nil, fmt.Errorf("run %s exec sql%d error: %v", m.name, len(sqls)-1, err)
 	}
 	defer rows.Close()
 
@@ -407,6 +526,10 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 	for rows.Next() {
 		row, err := m.scanSQLRow(rows)
 		if err != nil {
+			if *flagDebug > 1 {
+			log.Printf("%s %s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n", 
+				m.name, len(sqls)-1, err, sqls[len(sqls)-1], rows)
+			}
 			continue
 		}
 		ret = append(ret, row)
@@ -423,9 +546,16 @@ func (m *Macro) resolveExecScript(javascript string, input map[string]interface{
 		"$macro": "provider",
 	})
 
+	if *flagDebug > 2 {
+		log.Printf("run %s provider(js):\n==js==\n%s\n", m.name, javascript)
+	}
+
 	val, err := vm.RunString(javascript)
 	if err != nil {
-		return nil, fmt.Errorf("run %s provider(js) error: %s", m.name, err.Error())
+		if *flagDebug > 0 {
+			log.Printf("run %s provider(js) error: %v\n", m.name, err)
+		}
+		return nil, fmt.Errorf("run %s provider(js) error: %v", m.name, err)
 	}
 
 	return val.Export(), nil
@@ -441,9 +571,16 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 		"$macro": "exec",
 	})
 
+	if *flagDebug > 2 {
+		log.Printf("run %s total js:\n==js==\n%s\n==input==\n%v\n", m.name, javascript, input)
+	}
+
 	val, err := vm.RunString(javascript)
 	if err != nil {
-		return nil, fmt.Errorf("run %s exec(js) error: %s", m.name, err.Error())
+		if *flagDebug > 0 {
+			log.Printf("run %s exec(js) error: %v\n", m.name, err)
+		}
+		return nil, fmt.Errorf("run %s exec(js) error: %v", m.name, err)
 	}
 
 	return val.Export(), nil
@@ -457,9 +594,16 @@ func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interfac
 		"$macro": "total",
 	})
 
+	if *flagDebug > 2 {
+		log.Printf("run %s total js:\n==js==\n%s\n==input==\n%v\n", m.name, javascript, input)
+	}
+
 	val, err := vm.RunString(javascript)
 	if err != nil {
-		return 0, fmt.Errorf("run %s total(js) error: %s", m.name, err.Error())
+		if *flagDebug > 0 {
+			log.Printf("run %s total(js) error: %v\n", m.name, err)
+		}
+		return 0, fmt.Errorf("run %s total(js) error: %v", m.name, err)
 	}
 
 	return val.ToInteger(), nil
@@ -508,9 +652,16 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 		"$macro": "transformer",
 	})
 
+	if *flagDebug > 2 {
+		log.Printf("run %s transformer js:\n==js==\n%s\n==data==\n%v\n", m.name, transformer, data)
+	}
+
 	v, err := vm.RunString(transformer)
 	if err != nil {
-		return nil, fmt.Errorf("run %s transformer error: %s", m.name, err.Error())
+		if *flagDebug > 0 {
+			log.Printf("run %s transformer error: %v\n", m.name, err)
+		}
+		return nil, fmt.Errorf("run %s transformer error: %v", m.name, err)
 	}
 
 	return v.Export(), nil
@@ -529,9 +680,16 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 		"$macro": "authorizer",
 	})
 
+	if *flagDebug > 2 {
+		log.Printf("run %s authorizer js:\n==js==\n%s\n==input==\n%v\n", m.name, authorizer, input)
+	}
+
 	val, err := vm.RunString(m.Authorizer)
 	if err != nil {
-		return false, fmt.Errorf("run %s authorize error: %s", m.name, err.Error())
+		if *flagDebug > 0 {
+			log.Printf("run %s authorize error:\n%v\n", m.name, err)
+		}
+		return false, fmt.Errorf("run %s authorize error: %v", m.name, err)
 	}
 
 	return val.ToBoolean(), nil
@@ -543,9 +701,17 @@ func (m *Macro) aggregate(input map[string]interface{}, inputKey map[string]inte
 	for _, k := range m.Aggregate {
 		macro := m.manager.Get(k)
 		if nil == macro {
+			if *flagDebug > 1 {
+				log.Printf("%s aggregate not existed macro(%s)\n", m.name, k)
+			}
 			err := fmt.Errorf("%s aggregate not existed macro(%s)", m.name, k)
 			return nil, err
 		}
+
+		if *flagDebug > 0 {
+			log.Printf("run %s aggregate: entry %s\n", m.name, macro.name)
+		}
+
 		out, err := macro.Call(input, inputKey)
 		if err != nil {
 			return nil, err
@@ -568,9 +734,17 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 	})
 
 	for k, src := range m.Validators {
+
+		if *flagDebug > 2 {
+			log.Printf("run %s validator(%s):\n==js==\n%s\n", m.name, k, src)
+		}
+
 		val, err := vm.RunString(src)
 		if err != nil {
-			return nil, fmt.Errorf("run %s validate(%s=\"%s\") error: %s", m.name, k, src, err.Error())
+			if *flagDebug > 0 {
+				log.Printf("run %s validate(%s=\"%s\") error: %v\n", m.name, k, src, err)
+			}
+			return nil, fmt.Errorf("run %s validate(%s=\"%s\") error: %v", m.name, k, src, err)
 		}
 
 		if !val.ToBoolean() {
@@ -595,9 +769,17 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 	ret := map[string]interface{}{}
 
 	for k, src := range m.Bind {
+
+		if *flagDebug > 2 {
+			log.Printf("run %s bind(%s): %s\n", m.name, k, src)
+		}
+
 		val, err := vm.RunString(src)
 		if err != nil {
-			return nil, fmt.Errorf("run %s bind(%s=\"%s\") error: %s", m.name, k, src, err.Error())
+			if *flagDebug > 0 {
+				log.Printf("run %s bind(%s=\"%s\") error: %v\n", m.name, k, src, err)
+			}
+			return nil, fmt.Errorf("run %s bind(%s=\"%s\") error: %v", m.name, k, src, err)
 		}
 
 		ret[k] = val.Export()
@@ -611,8 +793,17 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 	for _, name := range m.Include {
 		macro := m.manager.Get(name)
 		if nil == macro {
+			if *flagDebug > 1 {
+				log.Printf("%s include not existed macro(%s)\n", m.name, name)
+			}
+	
 			return fmt.Errorf("%s include not existed macro(%s)", m.name, name)
 		}
+
+		if *flagDebug > 2 {
+			log.Printf("run %s include: %s\n", m.name, macro.name)
+		}
+
 		_, err := macro.Call(input, inputKey)
 		if err != nil {
 			return err
