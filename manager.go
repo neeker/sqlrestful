@@ -71,7 +71,7 @@ func fixMacro(v *Macro) error {
 		v.Ret = strings.ToLower(v.Ret)
 	}
 
-	if v.Ret != "origin" {
+	if v.Ret != "origin" && v.Ret != "nil" {
 		v.Ret = "enclosed"
 	}
 
