@@ -61,7 +61,7 @@ func fixMacro(v *Macro) error {
 		v.Impl = strings.ToLower(v.Impl)
 	}
 
-	if v.Impl != "js" {
+	if v.Impl != "js" && v.Impl != "cmd" {
 		v.Impl = "sql"
 	}
 

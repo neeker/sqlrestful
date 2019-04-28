@@ -32,6 +32,8 @@ import (
 	"strings"
 	"strconv"
 	"log"
+	"bytes"
+	"os/exec"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -271,9 +273,12 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 
 		var total int64
 
-		if scriptImpl == "js" {
+		switch {
+		case scriptImpl == "js":
 			total, err = m.execJavaScriptTotal(pageTotal, input)
-		} else {
+		case scriptImpl == "cmd":
+			total, err = m.execCommandTotal(pageTotal, input)
+		default:
 			total, err = m.execSQLTotal(strings.Split(strings.TrimSpace(pageTotal), "---"), input)
 		}
 
@@ -294,9 +299,12 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		pageRet["total"] = total
 
 		if resultLimit > 0 && total > 0 {
-			if scriptImpl == "js" {
+			switch {
+			case scriptImpl == "js":
 				out, err = m.execJavaScript(execScript, input)
-			} else {
+			case scriptImpl == "cmd":
+				out, err = m.execCommand(execScript, input)
+			default:
 				out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
 			}
 
@@ -333,9 +341,12 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		return pageRet, nil
 	} 
 
-	if scriptImpl == "js" {
+	switch {
+	case scriptImpl == "js":
 		out, err = m.execJavaScript(execScript, input)
-	} else {
+	case scriptImpl == "cmd":
+		out, err = m.execCommand(execScript, input)
+	default:
 		out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
 	}
 
@@ -810,4 +821,92 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 		}
 	}
 	return nil
+}
+
+
+// execCommand - execute the command line
+func (m *Macro) execCommand(cmdline string, input map[string]interface{}) (interface{}, error) {
+	args, err := m.buildBind(input)
+	if err != nil {
+		return 0, err
+	}
+
+	inputArgs := []string{ "-c", cmdline }
+
+	for k, v := range args {
+		inputArgs = append(inputArgs, k)
+		switch v.(type) {
+		case string:
+			if v.(string) != "" {
+				inputArgs = append(inputArgs, v.(string))
+			}
+		}
+	}
+
+	cmd := exec.Command("/bin/bash", inputArgs[0:]...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	
+	err = cmd.Run()
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s exec(cmd) error: %v\n==cmd==\n%s", m.name, err, cmdline)
+		}
+		return nil, err
+	}
+	outStr := out.String()
+	var outData interface{}
+	err = json.Unmarshal([]byte(outStr), &outData)
+
+	if err != nil {
+		return outStr, nil
+	}
+
+	return outData, nil
+}
+
+
+
+// execCommand - execute the command line
+func (m *Macro) execCommandTotal(cmdline string, input map[string]interface{}) (int64, error) {
+	args, err := m.buildBind(input)
+	if err != nil {
+		return 0, err
+	}
+
+	inputArgs := []string{ "-c", cmdline }
+
+	for k, v := range args {
+		inputArgs = append(inputArgs, k)
+		switch v.(type) {
+		case string:
+			if v.(string) != "" {
+				inputArgs = append(inputArgs, v.(string))
+			}
+		}
+	}
+
+	cmd := exec.Command("/bin/bash", inputArgs[0:]...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	
+	err = cmd.Run()
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s total(cmd) error: %v\n==cmd==\n%s", m.name, err, cmdline)
+		}
+		return 0, err
+	}
+	outStr := out.String()
+	outData, err := strconv.Atoi(outStr)
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s total(cmd) return error: %s\n==cmd==\n%s", m.name, outStr, cmdline)
+		}
+		return 0, nil
+	}
+
+	return int64(outData), nil
 }
