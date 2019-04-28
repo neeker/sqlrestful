@@ -71,8 +71,3 @@ docker run -ti --rm -p 80:80 snz1/sqlrestful \
 
 <img src="docs/img/swagger.png" width="80%" > <br>
 
-<h3>测试服务HCL脚本：<h3>
-
-<img src="docs/img/testhcl.png" width="80%" > <br>
-
-</div>
