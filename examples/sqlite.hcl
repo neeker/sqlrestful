@@ -19,6 +19,8 @@ root {
 
   path = "/"
 
+  summary = "跳转至接口文档"
+
   tags = [ "1.测试接口" ]
 
   get {
@@ -97,6 +99,22 @@ dataxs {
       SELECT * FROM datax WHERE id = :id;
     SQL
 
+    //应答格式
+    model {
+      id {
+        type = "integer"
+      }
+      name {
+        type = "string"
+      }
+      age {
+        type = "integer"
+      }
+      address {
+        type = "string"
+      }
+    }
+
     //返回类型
     result = "object"
 
@@ -131,6 +149,22 @@ datax {
     //返回类型
     result = "object"
 
+    //应答格式
+    model {
+      id {
+        type = "integer"
+      }
+      name {
+        type = "string"
+      }
+      age {
+        type = "integer"
+      }
+      address {
+        type = "string"
+      }
+    }
+
   }
 
   put {
@@ -154,6 +188,22 @@ datax {
     SQL
 
     result = "object"
+
+    //应答格式
+    model {
+      id {
+        type = "integer"
+      }
+      name {
+        type = "string"
+      }
+      age {
+        type = "integer"
+      }
+      address {
+        type = "string"
+      }
+    }
 
   }
 

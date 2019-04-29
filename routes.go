@@ -114,9 +114,10 @@ func getMacroBindParams(macro *Macro, method string) []map[string]interface{} {
 			"description": "body",
 			"required":    false,
 			"schema": map[string]interface{}{
-				"$ref": "#/definitions/jsonbody",
+				"$ref": "#/definitions/" + macro.name + ".input",
 			},
 		})
+
 	}
 
 	return ret
@@ -142,6 +143,13 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 			if len(definedMethods) == 0 {
 				definedMethods = append(definedMethods, "GET")
 			}
+
+			schemaRef := "#/definitions/result"
+
+			if macro.Model != nil {
+				schemaRef = macro.name + ".result"
+			}
+
 			for _, k := range definedMethods {
 				methodName := strings.ToLower(k)
 				apiPathMethods[methodName] = map[string]interface{}{
@@ -155,19 +163,19 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 						"200": map[string]interface{}{
 							"description": "OK",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
+								"$ref": schemaRef,
 							},
 						},
 						"401": map[string]interface{}{
 							"description": "Unauthorized",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
+								"$ref": "#/definitions/error",
 							},
 						},
 						"403": map[string]interface{}{
 							"description": "Forbidden",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
+								"$ref": "#/definitions/error",
 							},
 						},
 					},
@@ -176,6 +184,13 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		} else {
 			for k, childm := range macro.methodMacros {
 				methodName := strings.ToLower(k)
+				
+				schemaRef := "#/definitions/result"
+
+				if childm.Model != nil {
+					schemaRef = childm.name + ".result"
+				}
+
 				apiPathMethods[methodName] = map[string]interface{}{
 					"tags":        childm.Tags,
 					"summary":     childm.Summary,
@@ -187,7 +202,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 						"200": map[string]interface{}{
 							"description": "OK",
 							"schema": map[string]interface{}{
-								"$ref": "#/definitions/result",
+								"$ref": schemaRef,
 							},
 						},
 						"401": map[string]interface{}{
@@ -425,8 +440,84 @@ func routeAPIDocs(c echo.Context) error {
 			},
 		},
 	}
+	
+	definitionsMap := retdata["definitions"].(map[string]interface{})
+
+	for _, macro := range macrosManager.List() {
+		buildResultDefinitionMap(macro, definitionsMap)
+		
+		for _, childm := range macro.methodMacros {
+			buildResultDefinitionMap(childm, definitionsMap)
+		}
+	}
 
 	return c.JSON(200, retdata)
+}
+
+
+//buildResultDefinitionMap
+func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{}) {
+	definitionName := macro.name + ".input"
+	if macro.Bind != nil {
+		bindMap := map[string]interface{}{}
+		for k := range macro.Bind {
+			bindMap[k] = map[string]interface{}{
+				"type": "string",
+			}
+		}
+		definitionsMap[definitionName] = map[string]interface{} {
+			"properties": bindMap,
+			"type": "object",
+		}
+	} else {
+		definitionsMap[definitionName] = map[string]interface{} {
+			"properties": map[string]interface{}{},
+			"type": "object",
+		}
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("%s input model %v", definitionName, definitionsMap[definitionName])
+	}
+
+	definitionName = macro.name + ".result"
+	if macro.Model != nil {
+		switch macro.Ret {
+		case "origin":
+			definitionsMap[definitionName] = map[string]interface{}{
+				"properties": macro.Model,
+				"type": "object",
+			}
+		case "nil":
+		default:
+			definitionsMap[definitionName] = map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"code": map[string]interface{}{
+						"type":   "integer",
+						"format": "int32",
+					},
+					"message": map[string]interface{}{
+						"type": "string",
+					},
+					"data": map[string]interface{}{
+						"properties": macro.Model,
+						"type": "object",
+					},
+				},
+			}
+		}
+	} else {
+		definitionsMap[definitionName] = map[string]interface{} {
+			"properties": map[string]interface{}{},
+			"type": "object",
+		}
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("%s bind model %v", definitionName, definitionsMap[definitionName])
+	}
+
 }
 
 //routeApiDocs
