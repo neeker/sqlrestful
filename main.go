@@ -67,6 +67,7 @@ func main() {
 	fmt.Printf("         \n")
 	fmt.Printf("  服务地址: %s\n", color.GreenString(*flagBasePath))
 	fmt.Printf("  服务名称: %s\n", color.GreenString(*flagName))
+	fmt.Printf("  实现脚本: %s\n", color.GreenString(*flagAPIFile))
 	fmt.Printf("  功能描述: %s\n", color.GreenString(*flagDescription))
 	fmt.Printf("  实现版本: %s\n", color.GreenString(*flagVersion))
 	fmt.Printf("  维护人员: %s\n", color.GreenString(*flagAuthor))

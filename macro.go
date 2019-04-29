@@ -46,12 +46,6 @@ type Cache struct {
 	Live uint32
 }
 
-// 格式
-type RRModel struct {
-	input map[string]interface{}
-	result map[string]interface{}
-}
-
 // Macro - a macro configuration
 type Macro struct {
 	Methods     []string
@@ -66,7 +60,7 @@ type Macro struct {
 	Aggregate   []string
 	Transformer string
 	Tags        []string
-	Model      *RRModel
+	Model      map[string]map[string]string
 
 	Summary string
 
