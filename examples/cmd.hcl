@@ -1,7 +1,25 @@
-cmd {
-  
+dir {
+
+  bind {
+    "" = "$input.dir"
+  }
+
   impl = "cmd"
 
-  exec = "ls -l /"
+  exec = "dir"
+
+}
+
+docker_pull {
+
+  path = "/docker/pull"
+
+  bind {
+    pull = "$input.img"
+  }
+
+  impl = "cmd"
+
+  exec = "docker"
 
 }

@@ -13,7 +13,7 @@ if [ "$BUILD_ORACLE" == "disabled" ];then
 fi
 
 if [ "$BUILD_ORACLE" == "disabled" ];then
-    sed -i "s,_ \"github.com/mattn/go-oci8\",//_ \"github.com/mattn/go-oci8\",g" /tmp/sqlrestful/init.go
+    sed -i "s,_ \"github.com/mattn/go-oci8\",//_ \"github.com/mattn/go-oci8\",g" /tmp/sqlrestful/prep.go
 fi
 
 exit 0

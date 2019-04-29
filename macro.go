@@ -27,12 +27,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"strconv"
 	"log"
-	"bytes"
+	"strconv"
+	"strings"
+
 	"os/exec"
 
 	"github.com/jmoiron/sqlx"
@@ -60,14 +61,14 @@ type Macro struct {
 	Aggregate   []string
 	Transformer string
 	Tags        []string
-	Model      map[string]map[string]string
+	Model       map[string]map[string]string
 
 	Summary string
 
 	Path string
 
-	Total string
-	Result  string
+	Total  string
+	Result string
 
 	Get    *Macro
 	Post   *Macro
@@ -157,7 +158,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	}
 
 	if m.Result == "page" {
-		if input["offset"] == nil || input["offset"] == ""{
+		if input["offset"] == nil || input["offset"] == "" {
 			input["offset"] = "0"
 		}
 		if input["limit"] == nil || input["limit"] == "" {
@@ -202,13 +203,13 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 			return nil, err
 		}
 	}
-	
-	pageTotal  := m.Total
+
+	pageTotal := m.Total
 	execScript := m.Exec
 	scriptImpl := m.Impl
-	
+
 	if m.Provider != "" {
-		resolvedVar, err := m.resolveExecScript(m.Provider, input);
+		resolvedVar, err := m.resolveExecScript(m.Provider, input)
 
 		if err != nil {
 			return nil, err
@@ -217,7 +218,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		switch resolvedVar.(type) {
 		case string:
 			execScript = resolvedVar.(string)
-			
+
 			if *flagDebug > 1 {
 				log.Printf("%s resolved exec script:\n\n%s\n\n", m.name, execScript)
 			}
@@ -249,7 +250,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 			return nil, fmt.Errorf("%s provider return error type: %s", m.name, string(v))
 		}
 	}
-	
+
 	if len(pageTotal) > 0 {
 		var resultLimit int
 		if input["offset"] == nil || input["offset"] == "" {
@@ -333,7 +334,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		return pageRet, nil
-	} 
+	}
 
 	switch {
 	case scriptImpl == "js":
@@ -351,7 +352,6 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		return nil, err
 	}
 
-	
 	if *flagDebug > 1 {
 		log.Printf("%s exec result: %v\n", m.name, out)
 	}
@@ -361,7 +361,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		case []map[string]interface{}:
 			if *flagDebug > 1 {
 				log.Printf("%s exec origin result was list: %v\n", m.name, out)
-			}			
+			}
 			tmp := out.([]map[string]interface{})
 			if len(tmp) < 1 {
 				return nil, errObjNotFound
@@ -370,7 +370,7 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		default:
 			if *flagDebug > 0 {
 				log.Printf("%s exec origin result was not list: %v\n", m.name, out)
-			}			
+			}
 		}
 	}
 
@@ -378,14 +378,13 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	if err != nil {
 		if *flagDebug > 0 {
 			log.Printf("%s transformer error: %v\n", m.name, err)
-		}			
+		}
 		return nil, err
 	}
 
 	if *flagDebug > 1 {
 		log.Printf("%s exec transformer result: %v\n", m.name, out)
-	}			
-
+	}
 
 	//设置缓存
 	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
@@ -430,7 +429,7 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 		if "" == sql {
 			continue
 		}
-		
+
 		if *flagDebug > 2 {
 			log.Printf("run %s total sql%d:\n==sql==%s\n==args==\n%v\n", m.name, i, sql, args)
 		}
@@ -442,7 +441,6 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 			return 0, fmt.Errorf("run %s total(sql) error: %v", m.name, err)
 		}
 	}
-
 
 	if *flagDebug > 2 {
 		log.Printf("run %s total sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, len(sqls)-1, sqls[len(sqls)-1], args)
@@ -498,11 +496,11 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		if "" == sql {
 			continue
 		}
-			
+
 		if *flagDebug > 2 {
 			log.Printf("run %s exec sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, i, sql, args)
 		}
-	
+
 		if _, err := conn.NamedExec(sql, args); err != nil {
 			if *flagDebug > 0 {
 				log.Printf("run %s exec sql%d error: %v\n==sql==\n%s\n", m.name, i, err, sql)
@@ -511,7 +509,6 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		}
 	}
 
-	
 	if *flagDebug > 2 {
 		log.Printf("run %s exec sql%d:\n==sql==\n%s\n==args==\n%v\n", m.name, len(sqls)-1, sqls[len(sqls)-1], args)
 	}
@@ -532,8 +529,8 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		row, err := m.scanSQLRow(rows)
 		if err != nil {
 			if *flagDebug > 1 {
-			log.Printf("%s %s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n", 
-				m.name, len(sqls)-1, err, sqls[len(sqls)-1], rows)
+				log.Printf("%s %s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n",
+					m.name, len(sqls)-1, err, sqls[len(sqls)-1], rows)
 			}
 			continue
 		}
@@ -547,7 +544,7 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 func (m *Macro) resolveExecScript(javascript string, input map[string]interface{}) (interface{}, error) {
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "provider",
 	})
 
@@ -566,13 +563,12 @@ func (m *Macro) resolveExecScript(javascript string, input map[string]interface{
 	return val.Export(), nil
 }
 
-
 // execJavaScript - run the javascript function
 func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) (interface{}, error) {
 
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "exec",
 	})
 
@@ -595,7 +591,7 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interface{}) (int64, error) {
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "total",
 	})
 
@@ -653,8 +649,8 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 
 	vm := initJSVM(map[string]interface{}{
 		"$result": data,
-		"$name": m.name,
-		"$macro": "transformer",
+		"$name":   m.name,
+		"$macro":  "transformer",
 	})
 
 	if *flagDebug > 2 {
@@ -681,7 +677,7 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "authorizer",
 	})
 
@@ -734,7 +730,7 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "validators",
 	})
 
@@ -768,7 +764,7 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
-		"$name": m.name,
+		"$name":  m.name,
 		"$macro": "bind",
 	})
 	ret := map[string]interface{}{}
@@ -801,7 +797,7 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 			if *flagDebug > 1 {
 				log.Printf("%s include not existed macro(%s)\n", m.name, name)
 			}
-	
+
 			return fmt.Errorf("%s include not existed macro(%s)", m.name, name)
 		}
 
@@ -817,51 +813,6 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 	return nil
 }
 
-
-// execCommand - execute the command line
-func (m *Macro) execCommand(cmdline string, input map[string]interface{}) (interface{}, error) {
-	args, err := m.buildBind(input)
-	if err != nil {
-		return 0, err
-	}
-
-	inputArgs := []string{ "-c", cmdline }
-
-	for k, v := range args {
-		inputArgs = append(inputArgs, k)
-		switch v.(type) {
-		case string:
-			if v.(string) != "" {
-				inputArgs = append(inputArgs, v.(string))
-			}
-		}
-	}
-
-	cmd := exec.Command("/bin/bash", inputArgs[0:]...)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	
-	err = cmd.Run()
-	if err != nil {
-		if *flagDebug > 0 {
-			log.Printf("run %s exec(cmd) error: %v\n==cmd==\n%s", m.name, err, cmdline)
-		}
-		return nil, err
-	}
-	outStr := out.String()
-	var outData interface{}
-	err = json.Unmarshal([]byte(outStr), &outData)
-
-	if err != nil {
-		return outStr, nil
-	}
-
-	return outData, nil
-}
-
-
-
 // execCommand - execute the command line
 func (m *Macro) execCommandTotal(cmdline string, input map[string]interface{}) (int64, error) {
 	args, err := m.buildBind(input)
@@ -869,7 +820,7 @@ func (m *Macro) execCommandTotal(cmdline string, input map[string]interface{}) (
 		return 0, err
 	}
 
-	inputArgs := []string{ "-c", cmdline }
+	cmdExecute, inputArgs := getCommandDefines(cmdline)
 
 	for k, v := range args {
 		inputArgs = append(inputArgs, k)
@@ -881,11 +832,11 @@ func (m *Macro) execCommandTotal(cmdline string, input map[string]interface{}) (
 		}
 	}
 
-	cmd := exec.Command("/bin/bash", inputArgs[0:]...)
+	cmd := exec.Command(cmdExecute, inputArgs[0:]...)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	
+
 	err = cmd.Run()
 	if err != nil {
 		if *flagDebug > 0 {
@@ -903,4 +854,47 @@ func (m *Macro) execCommandTotal(cmdline string, input map[string]interface{}) (
 	}
 
 	return int64(outData), nil
+}
+
+// execCommand - execute the command line
+func (m *Macro) execCommand(cmdline string, input map[string]interface{}) (interface{}, error) {
+	args, err := m.buildBind(input)
+	if err != nil {
+		return 0, err
+	}
+
+	cmdExecute, inputArgs := getCommandDefines(cmdline)
+
+	for k, v := range args {
+		inputArgs = append(inputArgs, k)
+		switch v.(type) {
+		case string:
+			if v.(string) != "" {
+				inputArgs = append(inputArgs, v.(string))
+			}
+		}
+	}
+
+	cmd := exec.Command(cmdExecute, inputArgs[0:]...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err = cmd.Run()
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("run %s exec(cmd) error: %v\n==cmd==\n%s", m.name, err, cmdline)
+		}
+		return nil, err
+	}
+	outStr := out.String()
+	var outData interface{}
+	err = json.Unmarshal([]byte(outStr), &outData)
+
+	if err != nil {
+		return outStr, nil
+	}
+
+	return outData, nil
+
 }

@@ -14,7 +14,7 @@ ADD *.mod /tmp/sqlrestful/
 
 ADD linux/*.sh /tmp/sqlrestful/linux/
 
-RUN chmod +x /tmp/sqlrestful/build.sh
+RUN chmod +x /tmp/sqlrestful/linux/build.sh
 
 RUN echo "build oracle oci $ORACLE"
 

@@ -1,5 +1,3 @@
-// +build !windows
-
 /*********************************************
                    _ooOoo_
                   o8888888o
@@ -40,8 +38,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/kshvakov/clickhouse"
 	_ "github.com/lib/pq"
-	//_ "github.com/mattn/go-sqlite3"
-	//_ "github.com/mattn/go-oci8"
 
 	"github.com/jmoiron/sqlx"
 
@@ -51,6 +47,9 @@ import (
 )
 
 func init() {
+	
+	prepInit()
+
 	usage := flag.Usage
 	flag.Usage = func() {
 		fmt.Println(serverBrand)
