@@ -2,3 +2,6 @@ bin
 .DS_Store
 *.pem
 *.pc
+*.exe
+sqlrestful
+sqlrestfulex
