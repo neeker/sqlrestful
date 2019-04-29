@@ -104,7 +104,7 @@ func NewManager(configpath string) (*Manager, error) {
 		files, _ := filepath.Glob(p)
 
 		if len(files) < 1 {
-			return nil, fmt.Errorf("无效的配置文件路径 (%s)", p)
+			return nil, fmt.Errorf("找不到文件路径(%s)", p)
 		}
 
 		for _, file := range files {
