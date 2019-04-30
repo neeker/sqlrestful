@@ -5,3 +5,6 @@ bin
 *.exe
 sqlrestful
 sqlrestfulex
+node_modules
+*.pdf
+_book

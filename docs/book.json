@@ -1,0 +1,88 @@
+{
+  "title": "SQLRestful 快速实现SQL转Restful微服务接口的云原生开发工具",
+  "description": "SQLRestful使用说明文档",
+  "language": "zh-hans",
+  "gitbook": "3.2.2",
+  "theme-default": {
+    "showLevel": true
+  },
+  "links": {
+    "sidebar": {}
+  },
+
+  "plugins": [
+    "-lunr",
+    "-search",
+    "-highlight",
+    "-livereload",
+    "search-plus@^0.0.11",
+    "simple-page-toc@^0.1.1",
+    "localized-footer",
+    "edit-link",
+    "search-pro@^2.0.2",
+    "include-codeblock@^3.0.2",
+    "-sharing",
+    "sharing-plus@^0.0.2",
+    "graph@^0.1.0",
+    "chart@^0.2.0",
+    "terminal@^0.3.2",
+    "sitemap-general@^0.1.1",
+    "feathers-versions"
+  ],
+  "pluginsConfig": {
+    "localized-footer": {
+      "hline": true,
+      "filename": "FOOTER.md"
+    },
+    "edit-link": {
+      "base": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs",
+      "label": "编辑文档"
+    },
+    "include-codeblock": {
+      "template": "ace",
+      "unindent": true,
+      "edit": true
+    },
+    "sharing": {
+      "douban": true,
+      "facebook": false,
+      "google": false,
+      "hatenaBookmark": false,
+      "instapaper": false,
+      "line": false,
+      "linkedin": false,
+      "messenger": false,
+      "pocket": false,
+      "qq": true,
+      "qzone": true,
+      "stumbleupon": false,
+      "twitter": false,
+      "viber": false,
+      "vk": false,
+      "weibo": true,
+      "whatsapp": false,
+      "all": [
+        "douban", "qq", "qzone", "weibo"
+      ]
+    },
+    "terminal": {
+      "copyButtons": true,
+      "fade": false,
+      "style": "flat"
+    },
+    "versions": {
+      "gitbookConfigURL": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs/book.json",
+      "options": [{
+        "value": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs",
+        "text": "v0.8ex"
+      }]
+    },
+    "sitemap-general": {
+      "prefix": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs"
+    },
+    "simple-page-toc": {
+      "maxDepth": 3,
+      "skipFirstH1": true
+    }
+  }
+}

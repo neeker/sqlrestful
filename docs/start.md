@@ -8,7 +8,7 @@
  - `curl`（可选）
  - `Linux`或`Windows`
 
-## 准备SQLRestful脚本
+## 准备`SQLRestful`脚本
 
 使用如下命令创建一个`demo.hcl`文件：
 
@@ -98,11 +98,11 @@ test {
 EOF
 ```
 
-> 👉这里可以直接下载[demo.hcl](../examples/demo.hcl "点击鼠标右键打开新标签")文件👈。
+> 👉这里可以直接下载[demo.hcl](https://raw.githubusercontent.com/neeker/sqlrestful/master/examples/demo.hcl "点击鼠标右键打开新标签")文件👈。
 
-## 运行SQLRestful服务
+## 运行`SQLRestful`开发的微服务
 
-命令行执行以下命令运行示例脚本开发的微服务接口：
+命令行执行以下`docker`命令运行示例脚本开发的微服务接口：
 
 ```bash
 docker run -ti --rm -p 80:80 \
@@ -163,13 +163,13 @@ curl -X GET "http://127.0.0.1/test?limit=15
 
 SQLRestful除了可以使用`sql`实现简单的微服务接口外，还可以配合`js`脚本实现复杂功能的，包括：
 
- - [x] 内置多种数据库支持（参见【[数据库支持列表](docs/db.md)】）
- - [x] 可通过`js`脚本实现可变条件的`SQL`查询；
- - [x] 可通过`js`配置实现对请求参数的校验；
- - [x] 可通过`js`实现`SQL`查询结果转换；
- - [x] `js`脚本可请求其他接口并支持[`jwt`规范](https://snz1.cn/k8s/javadoc/appgateway/2.%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/CallApi.html)；
- - [x] 为接口提供配置方式的`Redis`缓存实现；
-
+ - 内置多种数据库支持（参见【[数据库支持列表](docs/db.md)】）
+ - 可通过`js`脚本实现可变条件的`SQL`查询；
+ - 可通过`js`配置实现对请求参数的校验；
+ - 可通过`js`实现`SQL`查询结果转换；
+ - `js`脚本可请求其他接口并支持[`jwt`规范](https://snz1.cn/k8s/javadoc/appgateway/2.%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/CallApi.html)；
+ - 为接口提供配置方式的`Redis`缓存实现；
+ - 提供基于[用户统一安全认证服务](https://snz1.cn/k8s/javadoc/sc-client-api/)规范的权限验证配置
 
 **使用建议**
 
@@ -177,13 +177,3 @@ SQLRestful除了可以使用`sql`实现简单的微服务接口外，还可以�
 
 ☞ SQLRestful不能适用于复杂业务逻辑的应用场景，总之合适的才是最好的！
 
-
-
-
-
-
-<br>
-<br>
-痞子飞猪
-己亥年劳动节前
-<br>
