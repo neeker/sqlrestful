@@ -33,6 +33,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"os/exec"
 
@@ -47,12 +48,23 @@ type Cache struct {
 	Live uint32
 }
 
+// Authorizer 配置
+type Authorizer struct {
+	Anonymous bool     //是否允许匿名
+	Scope     string   //用户组织范围
+	Roles     []string //可访问的角色
+	Users     []string //可访问的用户
+	Policy    string   //判定策略，include表示包含、exclude表示排除
+}
+
 // Macro - a macro configuration
 type Macro struct {
-	Methods     []string
-	Include     []string
-	Validators  map[string]string
-	Authorizer  string
+	Methods     []string          //请求方法
+	Include     []string          //引用宏列表
+	Validators  map[string]string //参数校验
+	Authorizer  string            //
+	Proxy       []string
+	Security    *Authorizer
 	Bind        map[string]string
 	Impl        string
 	Ret         string
@@ -77,7 +89,10 @@ type Macro struct {
 	Delete *Macro
 	Cache  *Cache
 
-	name         string
+	name     string          //宏名称
+	rolesMap map[string]bool //要求角色
+	usersMap map[string]bool //排除角色
+
 	manager      *Manager
 	methodMacros map[string]*Macro
 }
@@ -141,7 +156,17 @@ func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
 
 // Call - executes the macro
 func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface{}) (interface{}, error) {
-	ok, err := m.authorize(input)
+
+	ok, err := m.filterSecurity(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, errAccessDenyError
+	}
+
+	ok, err = m.authorize(input)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +554,7 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		row, err := m.scanSQLRow(rows)
 		if err != nil {
 			if *flagDebug > 1 {
-				log.Printf("%s %s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n",
+				log.Printf("%s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n",
 					m.name, len(sqls)-1, err, sqls[len(sqls)-1], rows)
 			}
 			continue
@@ -545,7 +570,7 @@ func (m *Macro) resolveExecScript(javascript string, input map[string]interface{
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "provider",
+		"$stage": "provider",
 	})
 
 	if *flagDebug > 2 {
@@ -569,7 +594,7 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "exec",
+		"$stage": "exec",
 	})
 
 	if *flagDebug > 2 {
@@ -592,7 +617,7 @@ func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interfac
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "total",
+		"$stage": "total",
 	})
 
 	if *flagDebug > 2 {
@@ -650,7 +675,7 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 	vm := initJSVM(map[string]interface{}{
 		"$result": data,
 		"$name":   m.name,
-		"$macro":  "transformer",
+		"$stage":  "transformer",
 	})
 
 	if *flagDebug > 2 {
@@ -678,7 +703,7 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "authorizer",
+		"$stage": "authorizer",
 	})
 
 	if *flagDebug > 2 {
@@ -731,7 +756,7 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "validators",
+		"$stage": "validators",
 	})
 
 	for k, src := range m.Validators {
@@ -765,7 +790,7 @@ func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{},
 	vm := initJSVM(map[string]interface{}{
 		"$input": input,
 		"$name":  m.name,
-		"$macro": "bind",
+		"$stage": "bind",
 	})
 	ret := map[string]interface{}{}
 
@@ -897,4 +922,145 @@ func (m *Macro) execCommand(cmdline string, input map[string]interface{}) (inter
 
 	return outData, nil
 
+}
+
+func (m *Macro) isDefinedSecurity() bool {
+	return m.Security != nil
+}
+
+func (m *Macro) isAnonymousAllow() bool {
+	return m.Security == nil || m.Security.Anonymous
+}
+
+// filterSecurity - run the filterSecurity config
+func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
+	var (
+		userid  string
+		idtype  string
+		scope   string
+		options map[string]interface{}
+	)
+
+	//获取用户ID
+	userid, _ = input["http_x_credential_userid"].(string)
+	idtype = "id"
+	scope = *flagUserScope
+
+	if userid == "" {
+		//获取用户名
+		userid, _ = input["http_x_credential_username"].(string)
+		idtype = "uname"
+		if userid == "" {
+			//获取TAM兼容用户
+			userid, _ = input["http_iv_user"].(string)
+			idtype = "uname"
+		}
+		//从命令行配置中获取ID类型
+		if *flagUserIDType != "" {
+			idtype = *flagUserIDType
+		}
+	}
+
+	//如果允许匿名则直接返回
+	if m.isAnonymousAllow() {
+		return true, nil
+	}
+
+	//用户未登录则直接退出
+	if userid == "" {
+		return false, nil
+	}
+
+	//判断用户是否有权访问
+	if m.usersMap != nil && len(m.usersMap) > 0 {
+		_, inUsers := m.usersMap[userid]
+		if m.Security.Policy == "exclude" {
+			if inUsers {
+				if *flagDebug > 2 {
+					log.Printf("%s run security user exclude: %s in %v\n", m.name, userid, m.usersMap)
+				}
+				return false, nil
+			}
+		} else if !inUsers {
+			if *flagDebug > 2 {
+				log.Printf("%s run security user include: %s not in %v\n", m.name, userid, m.usersMap)
+			}
+			return false, nil
+		}
+	}
+
+	options = make(map[string]interface{})
+
+	//prepare jsJWTFetchfunc options params
+	options["method"] = "GET"
+
+	//帐号获取接口地址
+	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%sidtype=%s&scope=%s&contain_roles=true&timestamp=%d",
+		*flagUserAPI, userid, idtype, scope, time.Now().UnixNano())
+
+	out, err := jsJWTFetchfunc(accAPIURL, options)
+
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("%s run security fetch (%s) error: %v\n",
+				m.name, accAPIURL, err)
+		}
+		return false, err
+	}
+
+	if out["code"] == 404 {
+		return false, nil
+	}
+
+	if out["code"] != 0 {
+		if *flagDebug > 0 {
+			log.Printf("%s run security fetch (%s) error: %v\n",
+				m.name, accAPIURL, out["message"])
+		}
+		return false, fmt.Errorf("%v", out["message"])
+	}
+
+	userItem, _ := out["data"].(map[string]interface{})
+
+	if userItem == nil {
+		if *flagDebug > 0 {
+			log.Printf("%s run security fetch (%s) error data: %v\n", m.name, accAPIURL, out)
+		}
+		return false, fmt.Errorf("%s run security fetch (%s) error data: %v", m.name, accAPIURL, out)
+	}
+
+	userRoles, _ := userItem["roles"].([]string)
+
+	if m.rolesMap != nil && len(m.rolesMap) > 0 {
+
+		if m.Security.Policy == "exclude" {
+			for _, r := range userRoles {
+				if _, inRoles := m.rolesMap[r]; inRoles {
+					if *flagDebug > 2 {
+						log.Printf("%s run security roles exclude: user(%s) role(%s) in %v\n",
+							m.name, userid, r, m.rolesMap)
+					}
+					return false, nil
+				}
+			}
+		} else {
+			userRolesMap := map[string]bool{}
+			for _, r := range userRoles {
+				userRolesMap[r] = true
+			}
+			for k := range m.rolesMap {
+				if _, inRoles := userRolesMap[k]; !inRoles {
+					if *flagDebug > 2 {
+						log.Printf("%s run security roles include: user(%s) role(%s) not in %v\n",
+							m.name, userid, k, m.rolesMap)
+					}
+					return false, nil
+				}
+			}
+		}
+
+		return true, nil
+	}
+
+	return true, nil
 }

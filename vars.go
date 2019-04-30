@@ -52,6 +52,9 @@ var (
 	flagEmail          = flag.String("email", "13317312768@qq.com", "联系邮箱")
 	flagDebug          = flag.Int("debug", 0, "调试模式级别：0关闭、1普通、2，详细")
 	flagSwagger        = flag.Bool("swagger", false, "是否开启内置SwaggerUI文档")
+	flagUserAPI        = flag.String("uumapi", "", "统一用户权限管理服务地址")
+	flagUserScope      = flag.String("userscope", "", "统一用户服务组织域代码")
+	flagUserIDType     = flag.String("useridtype", "", "请求头中的用户标识类型")
 	flagAPIFile        = flag.String("config", "./*.hcl", "缺省的配置文件路径（多个逗号分隔）")
 )
 
@@ -82,7 +85,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.7ex"
+	serverVersion = "v0.8ex"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _

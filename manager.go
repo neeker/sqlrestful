@@ -44,7 +44,7 @@ type Manager struct {
 	sync.RWMutex
 }
 
-func fixMacro(v *Macro) error {
+func fixMacro(v *Macro) {
 	if len(v.Total) > 0 {
 		v.Result = "page"
 	}
@@ -91,7 +91,27 @@ func fixMacro(v *Macro) error {
 		v.Tags = append(v.Tags, v.name)
 	}
 
-	return nil
+	if v.isDefinedSecurity() {
+		if v.Security.Policy == "" {
+			v.Security.Policy = "include"
+		} else {
+			v.Security.Policy = strings.ToLower(v.Security.Policy)
+		}
+
+		if v.Security.Users != nil && len(v.Security.Users) > 0 {
+			v.usersMap = map[string]bool{}
+			for _, u := range v.Security.Users {
+				v.usersMap[u] = true
+			}
+		}
+		if v.Security.Roles != nil && len(v.Security.Roles) > 0 {
+			v.rolesMap = map[string]bool{}
+			for _, r := range v.Security.Users {
+				v.rolesMap[r] = true
+			}
+		}
+	}
+
 }
 
 // NewManager - initialize a new manager
@@ -185,6 +205,11 @@ func NewManager(configpath string) (*Manager, error) {
 					} else if v.Tags != nil {
 						childm.Tags = append(childm.Tags, v.Tags[0:]...)
 					}
+
+					if !childm.isDefinedSecurity() {
+						childm.Security = v.Security
+					}
+
 					fixMacro(childm)
 				}
 

@@ -27,10 +27,11 @@
 package main
 
 import (
-	"strings"
 	"log"
 	"net/http"
-	
+	"regexp"
+	"strings"
+
 	"github.com/labstack/echo"
 )
 
@@ -184,7 +185,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		} else {
 			for k, childm := range macro.methodMacros {
 				methodName := strings.ToLower(k)
-				
+
 				schemaRef := "#/definitions/result"
 
 				if childm.Model != nil {
@@ -310,7 +311,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		},
 	}
 
-	if *flagSwagger { 
+	if *flagSwagger {
 		pathsMap["/webjars"] = map[string]interface{}{
 			"get": map[string]interface{}{
 				"tags":        []string{inlineTag},
@@ -440,12 +441,12 @@ func routeAPIDocs(c echo.Context) error {
 			},
 		},
 	}
-	
+
 	definitionsMap := retdata["definitions"].(map[string]interface{})
 
 	for _, macro := range macrosManager.List() {
 		buildResultDefinitionMap(macro, definitionsMap)
-		
+
 		for _, childm := range macro.methodMacros {
 			buildResultDefinitionMap(childm, definitionsMap)
 		}
@@ -453,7 +454,6 @@ func routeAPIDocs(c echo.Context) error {
 
 	return c.JSON(200, retdata)
 }
-
 
 //buildResultDefinitionMap
 func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{}) {
@@ -465,14 +465,14 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 				"type": "string",
 			}
 		}
-		definitionsMap[definitionName] = map[string]interface{} {
+		definitionsMap[definitionName] = map[string]interface{}{
 			"properties": bindMap,
-			"type": "object",
+			"type":       "object",
 		}
 	} else {
-		definitionsMap[definitionName] = map[string]interface{} {
+		definitionsMap[definitionName] = map[string]interface{}{
 			"properties": map[string]interface{}{},
-			"type": "object",
+			"type":       "object",
 		}
 	}
 
@@ -486,7 +486,7 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 		case "origin":
 			definitionsMap[definitionName] = map[string]interface{}{
 				"properties": macro.Model,
-				"type": "object",
+				"type":       "object",
 			}
 		case "nil":
 		default:
@@ -502,15 +502,15 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 					},
 					"data": map[string]interface{}{
 						"properties": macro.Model,
-						"type": "object",
+						"type":       "object",
 					},
 				},
 			}
 		}
 	} else {
-		definitionsMap[definitionName] = map[string]interface{} {
+		definitionsMap[definitionName] = map[string]interface{}{
 			"properties": map[string]interface{}{},
-			"type": "object",
+			"type":       "object",
 		}
 	}
 
@@ -550,7 +550,7 @@ func routeClearCaches(c echo.Context) error {
 }
 
 // routeExecMacro - execute the requested macro
-func routeExecMacro(c echo.Context)(err error) {
+func routeExecMacro(c echo.Context) (err error) {
 	macro := c.Get("macro").(*Macro)
 
 	input := make(map[string]interface{})
@@ -558,7 +558,7 @@ func routeExecMacro(c echo.Context)(err error) {
 
 	keyInput := make(map[string]interface{})
 
-	tmpPath := c.Path()
+	tmpPath := c.Request().URL.Path
 	if tmpPath == "" {
 		tmpPath = "/"
 	}
@@ -583,11 +583,11 @@ func routeExecMacro(c echo.Context)(err error) {
 		formParams, err := c.FormParams()
 		if err != nil {
 			if *flagDebug > 0 {
-				log.Printf("%s %s route to %s prepare form error: %v\n", 
+				log.Printf("%s %s route to %s prepare form error: %v\n",
 					c.Request().Method, tmpPath, macro.name, err)
 			}
 		} else {
-			for k, _ := range formParams {
+			for k := range formParams {
 				input[k] = c.FormValue(k)
 				keyInput[k] = c.FormValue(k)
 			}
@@ -603,14 +603,41 @@ func routeExecMacro(c echo.Context)(err error) {
 		input["cookie_"+strings.Replace(strings.ToLower(cookie.Name), "-", "_", -1)] = cookie.Value
 	}
 
-	input["http_method"] = c.Request().Method;
+	input["http_method"] = c.Request().Method
 	input["http_path"] = tmpPath
-	input["http_client_ip"] = c.RealIP()
+	input["http_url"] = c.Request().URL.String()
+	input["http_uri"] = c.Request().RequestURI
+	input["http_remote_addr"] = c.Request().RemoteAddr
+	input["http_real_ip"] = c.RealIP()
 	input["http_scheme"] = c.Scheme()
 
 	if *flagDebug > 2 {
-		log.Printf("%s %s route to %s:\n==input==\n%v\n==path_vars==\n%v\n", 
+		log.Printf("%s %s route to %s:\n==input==\n%v\n==path_vars==\n%v\n",
 			c.Request().Method, tmpPath, macro.name, input, keyInput)
+	}
+
+	if macro.Proxy != nil && len(macro.Proxy) > 0 {
+		requestAllow := false
+		clientIP := strings.Split(c.Request().RemoteAddr, ":")[0]
+
+		for _, proxyIP := range macro.Proxy {
+			ipMatched, err := regexp.Match(proxyIP, []byte(clientIP))
+			if err != nil && *flagDebug > 0 {
+				log.Printf("%s proxy regex match error: %v", macro.name, err)
+			}
+			if ipMatched {
+				requestAllow = true
+				break
+			}
+		}
+
+		if !requestAllow {
+			return c.JSON(403, map[string]interface{}{
+				"code":    403,
+				"message": "不允许访问！",
+			})
+		}
+
 	}
 
 	out, err := macro.Call(input, keyInput)
@@ -635,8 +662,8 @@ func routeExecMacro(c echo.Context)(err error) {
 		}
 
 		return c.JSON(200, out)
-	} 
-	
+	}
+
 	if macro.Ret == "redirect" {
 		if *flagDebug > 2 {
 			log.Printf("%s ret is redirect\n", macro.name)
@@ -650,14 +677,14 @@ func routeExecMacro(c echo.Context)(err error) {
 			if *flagDebug > 0 {
 				log.Printf("%s result is not url: %v\n", macro.name, out)
 			}
-	
+
 			return c.JSON(200, map[string]interface{}{
 				"code":    500,
 				"message": "返回值不是有效的网址！",
-				"data": out,
+				"data":    out,
 			})
 		}
-	} 
+	}
 
 	if macro.Ret == "nil" {
 
@@ -675,7 +702,7 @@ func routeExecMacro(c echo.Context)(err error) {
 	if *flagDebug > 2 {
 		log.Printf("%s ret is normal\n", macro.name)
 	}
-	
+
 	if out != nil {
 		if *flagDebug > 2 {
 			log.Printf("%s result: %s\n", macro.name, out)

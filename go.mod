@@ -32,4 +32,5 @@ require (
 	golang.org/x/net v0.0.0-20190110200230-915654e7eabc // indirect
 	golang.org/x/text v0.3.0 // indirect
 	gopkg.in/resty.v1 v1.11.0
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

@@ -28,12 +28,16 @@
 
 package main
 
-import(
+import (
 	"fmt"
+	"time"
 )
 
-func prepInit()(int) {
-  fmt.Sprintf("test")
+var (
+	startHold string
+)
+
+func prepInit() int {
+	startHold = fmt.Sprintf("start on %v", time.Now())
 	return 0
 }
-
