@@ -482,7 +482,7 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 
 	definitionName = macro.name + ".result"
 	if macro.Model != nil {
-		switch macro.Ret {
+		switch macro.Format {
 		case "origin":
 			definitionsMap[definitionName] = map[string]interface{}{
 				"properties": macro.Model,
@@ -657,7 +657,7 @@ func routeExecMacro(c echo.Context) (err error) {
 		})
 	}
 
-	if macro.Ret == "origin" {
+	if macro.Format == "origin" {
 		if *flagDebug > 2 {
 			log.Printf("%s ret is origin\n", macro.name)
 		}
@@ -665,7 +665,7 @@ func routeExecMacro(c echo.Context) (err error) {
 		return c.JSON(200, out)
 	}
 
-	if macro.Ret == "redirect" {
+	if macro.Format == "redirect" {
 		if *flagDebug > 2 {
 			log.Printf("%s ret is redirect\n", macro.name)
 		}
@@ -687,7 +687,7 @@ func routeExecMacro(c echo.Context) (err error) {
 		}
 	}
 
-	if macro.Ret == "nil" {
+	if macro.Format == "nil" {
 
 		if *flagDebug > 2 {
 			log.Printf("%s ret is defined nil\n", macro.name)

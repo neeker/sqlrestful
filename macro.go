@@ -40,7 +40,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Cache 缓存配置
+// Cache - 缓存配置
 type Cache struct {
 	Put  []string
 	Evit []string
@@ -48,7 +48,7 @@ type Cache struct {
 	Live uint32
 }
 
-// Authorizer 配置
+// Authorizer - 配置
 type Authorizer struct {
 	Anonymous bool     //是否允许匿名
 	Scope     string   //用户组织范围
@@ -57,16 +57,30 @@ type Authorizer struct {
 	Policy    string   //判定策略，include表示包含、exclude表示排除
 }
 
+// JwtDefined - JWT定义
+type JwtDefined struct {
+	Rsa     string
+	Secret  string
+	Expires int
+}
+
 // Macro - a macro configuration
 type Macro struct {
+	Name    string
+	Desc    string
+	Version string
+	Author  string
+	Email   string
+
 	Methods     []string          //请求方法
 	Include     []string          //引用宏列表
 	Validators  map[string]string //参数校验
 	Authorizer  string            //
 	Security    *Authorizer
+	Jwt         *JwtDefined
 	Bind        map[string]string
 	Impl        string
-	Ret         string
+	Format      string
 	Exec        string
 	Provider    string
 	Aggregate   []string

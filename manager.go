@@ -65,14 +65,14 @@ func fixMacro(v *Macro) {
 		v.Impl = "sql"
 	}
 
-	if v.Ret == "" {
-		v.Ret = "enclosed"
+	if v.Format == "" {
+		v.Format = "enclosed"
 	} else {
-		v.Ret = strings.ToLower(v.Ret)
+		v.Format = strings.ToLower(v.Format)
 	}
 
-	if v.Ret != "origin" && v.Ret != "nil" && v.Ret != "redirect" {
-		v.Ret = "enclosed"
+	if v.Format != "origin" && v.Format != "nil" && v.Format != "redirect" {
+		v.Format = "enclosed"
 	}
 
 	switch {
