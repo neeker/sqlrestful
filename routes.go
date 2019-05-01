@@ -616,14 +616,15 @@ func routeExecMacro(c echo.Context) (err error) {
 			c.Request().Method, tmpPath, macro.name, input, keyInput)
 	}
 
-	if macro.Proxy != nil && len(macro.Proxy) > 0 {
+	if trustedProxyList != nil && len(trustedProxyList) > 0 {
 		requestAllow := false
 		clientIP := strings.Split(c.Request().RemoteAddr, ":")[0]
 
-		for _, proxyIP := range macro.Proxy {
+		for _, proxyIP := range trustedProxyList {
 			ipMatched, err := regexp.Match(proxyIP, []byte(clientIP))
 			if err != nil && *flagDebug > 0 {
-				log.Printf("%s proxy regex match error: %v", macro.name, err)
+				log.Printf("%s request %s, but regex (%s) match error: %v",
+					clientIP, macro.name, proxyIP, err)
 			}
 			if ipMatched {
 				requestAllow = true

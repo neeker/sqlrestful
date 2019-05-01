@@ -29,9 +29,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
-	"io/ioutil"
+	"strings"
 
 	_ "github.com/SAP/go-hdb/driver"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -47,7 +48,7 @@ import (
 )
 
 func init() {
-	
+
 	prepInit()
 
 	usage := flag.Usage
@@ -76,9 +77,9 @@ func init() {
 			os.Exit(0)
 		}
 
-		redisClient := redis.NewClient(redisOpts);
+		redisClient := redis.NewClient(redisOpts)
 		err = redisClient.Ping().Err()
-		
+
 		if err != nil {
 			fmt.Println(fmt.Sprintf("[redis] %s 连接出错：%s", *flagRedisURL, err.Error()))
 			os.Exit(0)
@@ -107,13 +108,20 @@ func init() {
 		if *flagJWTExpires < int(10) {
 			fmt.Println("[jwt] JWT 令牌有效期必须大于10秒！")
 			os.Exit(0)
-		} 
+		}
 
 		jwtRSAPrivkey = tmpPrivateKey
 		jwtSecret = *flagJWTSecret
 		jwtExpires = *flagJWTExpires
 
-	} 
+	}
+
+	trustedProxyList = strings.Split(*flagTrustedProxy, ",")
+
+	if *flagAPIFile == "" {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	{
 		manager, err := NewManager(*flagAPIFile)

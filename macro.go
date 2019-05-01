@@ -63,7 +63,6 @@ type Macro struct {
 	Include     []string          //引用宏列表
 	Validators  map[string]string //参数校验
 	Authorizer  string            //
-	Proxy       []string
 	Security    *Authorizer
 	Bind        map[string]string
 	Impl        string
@@ -944,7 +943,16 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 	//获取用户ID
 	userid, _ = input["http_x_credential_userid"].(string)
 	idtype = "id"
-	scope = *flagUserScope
+
+	if *flagUserScope != "" {
+		scope, _ = input["http_x_user_scope"].(string)
+		if scope != *flagUserScope {
+			if *flagDebug > 2 {
+				log.Printf("%s run security user scope error:  %s != %s\n", m.name, scope, *flagUserScope)
+			}
+			return false, nil
+		}
+	}
 
 	if userid == "" {
 		//获取用户名
@@ -994,9 +1002,14 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 	//prepare jsJWTFetchfunc options params
 	options["method"] = "GET"
 
+	scopeValue := ""
+	if scope != "" {
+		scopeValue = "&scope=" + scope
+	}
+
 	//帐号获取接口地址
-	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%sidtype=%s&scope=%s&contain_roles=true&timestamp=%d",
-		*flagUserAPI, userid, idtype, scope, time.Now().UnixNano())
+	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%sidtype=%s%s&contain_roles=true&timestamp=%d",
+		*flagUserAPI, userid, idtype, scopeValue, time.Now().UnixNano())
 
 	out, err := jsJWTFetchfunc(accAPIURL, options)
 
