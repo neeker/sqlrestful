@@ -148,9 +148,13 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 
 			for _, k := range definedMethods {
 				methodName := strings.ToLower(k)
+				tmpDescValue := macro.Summary
+				if macro.Desc != "" {
+					tmpDescValue = macro.Desc
+				}
 				apiPathMethods[methodName] = map[string]interface{}{
 					"tags":        macro.Tags,
-					"summary":     macro.Summary,
+					"summary":     tmpDescValue,
 					"operationId": macro.name,
 					"consumes":    []string{"application/json"},
 					"produces":    []string{"application/json;charset=UTF-8"},
@@ -187,9 +191,14 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 					schemaRef = childm.name + ".result"
 				}
 
+				tmpDescValue := childm.Summary
+				if childm.Desc != "" {
+					tmpDescValue = childm.Desc
+				}
+
 				apiPathMethods[methodName] = map[string]interface{}{
 					"tags":        childm.Tags,
-					"summary":     childm.Summary,
+					"summary":     tmpDescValue,
 					"operationId": childm.name,
 					"consumes":    []string{"application/json"},
 					"produces":    []string{"application/json;charset=UTF-8"},
