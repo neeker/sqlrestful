@@ -35,11 +35,6 @@ import (
 	"github.com/labstack/echo"
 )
 
-// routeIndex - the index route
-func routeIndex(c echo.Context) error {
-	return c.Redirect(301, "health")
-}
-
 // customer HTTPErrorHandler
 func customHTTPErrorHandler(err error, c echo.Context) {
 
@@ -265,7 +260,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		},
 	}
 
-	if redisDb != nil {
+	if macrosManager.DatabaseConfig().IsRedisEnabled() {
 		pathsMap["/clear_caches"] = map[string]interface{}{
 			"post": map[string]interface{}{
 				"tags":        []string{inlineTag},
@@ -311,7 +306,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		},
 	}
 
-	if *flagSwagger {
+	if macrosManager.IsSwaggerEnabled() {
 		pathsMap["/webjars"] = map[string]interface{}{
 			"get": map[string]interface{}{
 				"tags":        []string{inlineTag},
@@ -395,16 +390,17 @@ func routeAPIDocs(c echo.Context) error {
 	retdata := map[string]interface{}{
 		"swagger": "2.0",
 		"info": map[string]interface{}{
-			"description": *flagDescription,
-			"version":     *flagVersion,
-			"title":       *flagName,
+			"description": macrosManager.ServiceDesc(),
+			"version":     macrosManager.ServiceVersion(),
+			"title":       macrosManager.ServiceName(),
 			"contact": map[string]interface{}{
-				"name":  *flagAuthor,
-				"email": *flagEmail,
+				"name":  macrosManager.ServiceAuthor().Name,
+				"email": macrosManager.ServiceAuthor().Email,
+				"url":   macrosManager.ServiceAuthor().Url,
 			},
 		},
 		"host":     "",
-		"basePath": *flagBasePath,
+		"basePath": macrosManager.ServiceBasePath(),
 		"tags":     apiTags,
 		"paths":    apiPaths,
 		"definitions": map[string]interface{}{
@@ -528,16 +524,12 @@ func routeClearCaches(c echo.Context) error {
 		macro := macrosManager.Get(macroName)
 
 		if macro.Cache != nil && macro.Cache.Put != nil && len(macro.Cache.Put) > 0 {
-			for _, k := range macro.Cache.Put {
-				redisDb.Del(k)
-			}
+			macrosManager.DatabaseConfig().ClearCaches(macro.Cache.Put)
 		}
 
 		for _, childm := range macro.methodMacros {
 			if childm.Cache != nil && childm.Cache.Put != nil && len(childm.Cache.Put) > 0 {
-				for _, k := range childm.Cache.Put {
-					redisDb.Del(k)
-				}
+				macrosManager.DatabaseConfig().ClearCaches(childm.Cache.Put)
 			}
 		}
 
@@ -616,11 +608,25 @@ func routeExecMacro(c echo.Context) (err error) {
 			c.Request().Method, tmpPath, macro.name, input, keyInput)
 	}
 
-	if trustedProxyList != nil && len(trustedProxyList) > 0 {
-		requestAllow := false
-		clientIP := strings.Split(c.Request().RemoteAddr, ":")[0]
+	var trustedProxy []string
 
-		for _, proxyIP := range trustedProxyList {
+	if macro.Proxy != nil {
+		trustedProxy = macro.Proxy
+	} else {
+		trustedProxy = macro.manager.TrustedProxyList()
+	}
+
+	if trustedProxy != nil && len(trustedProxy) > 0 {
+		requestAllow := false
+		portIndex := strings.LastIndex(c.Request().RemoteAddr, ":")
+		var clientIP string
+		if portIndex > 0 {
+			clientIP = c.Request().RemoteAddr[0:portIndex]
+		} else {
+			clientIP = c.Request().RemoteAddr
+		}
+
+		for _, proxyIP := range trustedProxy {
 			ipMatched, err := regexp.Match(proxyIP, []byte(clientIP))
 			if err != nil && *flagDebug > 0 {
 				log.Printf("%s request %s, but regex (%s) match error: %v",

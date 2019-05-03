@@ -32,15 +32,12 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"strings"
 
 	_ "github.com/SAP/go-hdb/driver"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/kshvakov/clickhouse"
 	_ "github.com/lib/pq"
-
-	"github.com/jmoiron/sqlx"
 
 	"github.com/go-redis/redis"
 
@@ -60,63 +57,38 @@ func init() {
 	flag.Parse()
 	runtime.GOMAXPROCS(*flagWorkers)
 
-	if *flagDBDriver != "" && *flagDBDSN != "" {
-		tstconn, err := sqlx.Connect(*flagDBDriver, *flagDBDSN)
-		if err != nil {
-			fmt.Println(fmt.Sprintf("[%s] %s 连接出错：%s", *flagDBDriver, *flagDBDSN, err.Error()))
-			os.Exit(0)
-		}
-		tstconn.Close()
-	}
-
 	//https://github.com/go-redis/redis
 	if *flagRedisURL != "" {
-		redisOpts, err := redis.ParseURL(*flagRedisURL)
+		_, err := redis.ParseURL(*flagRedisURL)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("[redis] %s 不正确：%s", *flagRedisURL, err.Error()))
+			fmt.Println(fmt.Sprintf("redis url(%s) error：%v", *flagRedisURL, err))
 			os.Exit(0)
 		}
-
-		redisClient := redis.NewClient(redisOpts)
-		err = redisClient.Ping().Err()
-
-		if err != nil {
-			fmt.Println(fmt.Sprintf("[redis] %s 连接出错：%s", *flagRedisURL, err.Error()))
-			os.Exit(0)
-		}
-		redisDb = redisClient
 	}
 
 	if *flagRSAPrivkey != "" {
 		if *flagJWTSecret == "" {
-			fmt.Println("[jwt] JWT 安全令牌不能为空！")
+			fmt.Println("jwt secret is empty!")
 			os.Exit(0)
 		}
 
 		rsaKeyData, err := ioutil.ReadFile(*flagRSAPrivkey)
 		if err != nil {
-			fmt.Println("[jwt] 加载 JWT RSA 私钥文件出错:", err.Error())
+			fmt.Println("load rsa private key error:", err.Error())
 			os.Exit(0)
 		}
 
-		tmpPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyData)
+		_, err = jwt.ParseRSAPrivateKeyFromPEM(rsaKeyData)
 		if err != nil {
-			fmt.Println("[jwt] JWT RSA 私钥格式错误:", err.Error())
+			fmt.Println("jwt rsa private key error:", err.Error())
 			os.Exit(0)
 		}
 
 		if *flagJWTExpires < int(10) {
-			fmt.Println("[jwt] JWT 令牌有效期必须大于10秒！")
-			os.Exit(0)
+			*flagJWTExpires = 1800
 		}
 
-		jwtRSAPrivkey = tmpPrivateKey
-		jwtSecret = *flagJWTSecret
-		jwtExpires = *flagJWTExpires
-
 	}
-
-	trustedProxyList = strings.Split(*flagTrustedProxy, ",")
 
 	if *flagAPIFile == "" {
 		flag.Usage()
@@ -126,7 +98,7 @@ func init() {
 	{
 		manager, err := NewManager(*flagAPIFile)
 		if err != nil {
-			fmt.Println("SQLRestful脚本错误:", err.Error())
+			fmt.Printf("Run SQLRestful macro error: %v!", err)
 			os.Exit(0)
 		}
 		macrosManager = manager

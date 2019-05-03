@@ -28,57 +28,79 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"strconv"
+	"strings"
 )
 
 func main() {
-	fmt.Println(serverBrand)
-	fmt.Printf("  工具版本: %s \n", serverVersion)
 
-	if *flagDBDriver == "" || *flagDBDSN == "" {
-		fmt.Printf("  SQL 驱动: %s \n", "<未配置>")
-		fmt.Printf("  连接字串: %s \n", "<未配置>")
-	} else {
-		fmt.Printf("  SQL 驱动: %s \n", *flagDBDriver)
-		fmt.Printf("  连接字串: %s \n", *flagDBDSN)
+	listenPortStart := strings.LastIndex(*flagRESTListenAddr, ":")
+	tmpHostIP := (*flagRESTListenAddr)[0:listenPortStart]
+	tmpPort := (*flagRESTListenAddr)[listenPortStart:]
+	if tmpHostIP == "" {
+		localAddrs, err := net.InterfaceAddrs()
+		if err != nil || len(localAddrs) == 0 {
+			tmpHostIP = "127.0.0.1"
+		} else {
+			for _, a := range localAddrs {
+				if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+					tmpHostIP = ipnet.IP.String()
+					break
+				}
+			}
+		}
 	}
 
-	fmt.Printf("  工作线程: %s \n", strconv.Itoa(*flagWorkers))
-	fmt.Printf("  监听端口: %s \n", *flagRESTListenAddr)
+	fmt.Println(macrosManager.ServiceBrand())
+	fmt.Printf("  SQLRestful  : %s \n", serverVersion)
+	fmt.Printf("  Listen Port : %s%s \n", tmpHostIP, tmpPort)
+	fmt.Printf("  HCL Files   : %s\n", *flagAPIFile)
+	fmt.Printf("  API Path    : %s\n", macrosManager.ServiceBasePath())
+	fmt.Printf("  Service Name: %s\n", macrosManager.ServiceName())
 
-	if *flagRedisURL == "" {
-		fmt.Printf("  Redis 缓存: %s \n", "<未配置>")
+	if macrosManager.DatabaseConfig().IsDatabaseEnabled() {
+		fmt.Printf("  Database    : %s\n", macrosManager.DatabaseConfig().Driver)
 	} else {
-		fmt.Printf("  Redis 缓存: %s \n", *flagRedisURL)
+		fmt.Printf("  Database    : %s\n", "<Disabled>")
 	}
 
-	if *flagRSAPrivkey == "" || *flagJWTSecret == "" {
-		fmt.Printf("  JWT RSA私钥: %s \n", "<未配置>")
-		fmt.Printf("  JWT 安全令牌: %s \n", "<未配置>")
-		fmt.Printf("  JWT 令牌期限: %s \n", "<未生效>")
+	if macrosManager.DatabaseConfig().IsRedisEnabled() {
+		fmt.Printf("  Redis Cache : %s\n", "<Enabled>")
 	} else {
-		fmt.Printf("  JWT RSA私钥: %s \n", *flagRSAPrivkey)
-		fmt.Printf("  JWT 安全令牌: %s \n", *flagJWTSecret)
-		fmt.Printf("  JWT 令牌期限: %s \n", strconv.Itoa(*flagJWTExpires)+"秒")
+		fmt.Printf("  Redis Cache : %s\n", "<Disabled>")
 	}
 
-	fmt.Printf("         \n")
-	fmt.Printf("  服务地址: %s\n", *flagBasePath)
-	fmt.Printf("  服务名称: %s\n", *flagName)
-	fmt.Printf("  实现脚本: %s\n", *flagAPIFile)
-	fmt.Printf("  功能描述: %s\n", *flagDescription)
-	fmt.Printf("  实现版本: %s\n", *flagVersion)
-	fmt.Printf("  维护人员: %s\n", *flagAuthor)
-	fmt.Printf("  联系邮箱: %s\n", *flagEmail)
-
-	if *flagSwagger {
-		fmt.Printf("  SwaggerUI: %s\n", "http://"+*flagRESTListenAddr+"/swagger-ui.html")
+	if len(macrosManager.TrustedProxyList()) > 0 {
+		fmt.Printf("  Trust Proxy : %v\n", macrosManager.TrustedProxyList())
 	} else {
-		fmt.Printf("  SwaggerUI: %s\n", "<未配置>")
+		fmt.Printf("  Trust Proxy : %v\n", "<All>")
+	}
+
+	if macrosManager.JwtIdentityConfig().IsEnabled() {
+		fmt.Printf("  JWT Identity: <RS256>\n")
+	} else {
+		fmt.Printf("  JWT Identity: <Disabled>\n")
+	}
+
+	if macrosManager.SecurityConfig().IsEnabled() {
+		fmt.Printf("  UUM Security: %s\n", macrosManager.SecurityConfig().Api)
+	} else {
+		fmt.Printf("  UUM Security: <Disabled>\n")
+	}
+
+	if tmpPort == ":80" {
+		tmpPort = ""
+	}
+
+	if macrosManager.IsSwaggerEnabled() {
+		fmt.Printf("  Swagger UI  : %s\n", "http://"+tmpHostIP+tmpPort+"/swagger-ui.html")
+	} else {
+		fmt.Printf("  Swagger UI  : %s\n", "<Disabled>")
 	}
 
 	if *flagDebug > 0 {
-		fmt.Printf("  输出日志: %s\n", "已开启"+strconv.Itoa(*flagDebug)+"级日志")
+		fmt.Printf("  Log Level   : %s\n", ""+strconv.Itoa(*flagDebug)+"")
 	}
 
 	fmt.Println("")

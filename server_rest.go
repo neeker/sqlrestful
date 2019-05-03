@@ -45,78 +45,78 @@ func initRestfulServer() error {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = customHTTPErrorHandler
 
-	routeBase := *flagBasePath
+	routeBase := macrosManager.ServiceBasePath()
 
 	if routeBase == "/" {
 		routeBase = ""
 	}
 
-	if *flagSwagger {
+	if macrosManager.IsSwaggerEnabled() {
 		//启用swagger-ui的webJar
-		e.Static(routeBase + "/webjars", "/swagger2/webjars");
-		e.File(routeBase + "/swagger-ui.html", "/swagger2/swagger-ui.html")
-		e.File(routeBase + "/swagger-resources/configuration/ui", "/swagger2/ui.json")
-		e.File(routeBase + "/swagger-resources", "/swagger2/swagger-resources.json")
-		e.File(routeBase + "/swagger-resources/configuration/security", "/swagger2/security.json")
+		e.Static(routeBase+"/webjars", "/swagger2/webjars")
+		e.File(routeBase+"/swagger-ui.html", "/swagger2/swagger-ui.html")
+		e.File(routeBase+"/swagger-resources/configuration/ui", "/swagger2/ui.json")
+		e.File(routeBase+"/swagger-resources", "/swagger2/swagger-resources.json")
+		e.File(routeBase+"/swagger-resources/configuration/security", "/swagger2/security.json")
 	}
 
-	e.GET(routeBase + "/v2/api-docs", routeAPIDocs)
+	e.GET(routeBase+"/v2/api-docs", routeAPIDocs)
 
 	//添加默认路由
-	e.GET(routeBase + "/health", routeHealth)
+	e.GET(routeBase+"/health", routeHealth)
 
-	if redisDb != nil {
-		e.POST(routeBase + "clear_caches", routeClearCaches)
+	if macrosManager.DatabaseConfig().IsRedisEnabled() {
+		e.POST(routeBase+"clear_caches", routeClearCaches)
 	}
 
 	//添加微服务接口路由
 	for _, macro := range macrosManager.List() {
-		if (len(macro.Exec) > 0) {
-			if (len(macro.Methods) > 0) {
+		if len(macro.Exec) > 0 {
+			if len(macro.Methods) > 0 {
 				for _, method := range macro.Methods {
 					method = strings.ToUpper(method)
 					switch {
-					case method == "GET" :
-						e.GET(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
-					case method == "POST" :
-						e.POST(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
-					case method == "PUT" :
-						e.PUT(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
-					case method == "PATCH" :
-						e.PATCH(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
-					case method == "DELETE" :
-						e.DELETE(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+					case method == "GET":
+						e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+					case method == "POST":
+						e.POST(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+					case method == "PUT":
+						e.PUT(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+					case method == "PATCH":
+						e.PATCH(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+					case method == "DELETE":
+						e.DELETE(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
 					}
 				}
 			} else {
-				e.GET(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+				e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
 			}
 		} else {
 			for method, childMacro := range macro.methodMacros {
 				switch {
-				case method == "GET" :
-					e.GET(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "POST" :
-					e.POST(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "PUT" :
-					e.PUT(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "PATCH" :
-					e.PATCH(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "DELETE" :
-					e.DELETE(routeBase + macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+				case method == "GET":
+					e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+				case method == "POST":
+					e.POST(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+				case method == "PUT":
+					e.PUT(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+				case method == "PATCH":
+					e.PATCH(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+				case method == "DELETE":
+					e.DELETE(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
 				}
 			}
 		}
 	}
-	
+
 	echoServer = e
 
 	return e.Start(*flagRESTListenAddr)
 }
 
 // getMiddlewareAuthorizeFunc
-func getMiddlewareAuthorizeFunc(macro *Macro) (echo.MiddlewareFunc) {
-	return func(next echo.HandlerFunc) echo.HandlerFunc { 
+func getMiddlewareAuthorizeFunc(macro *Macro) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return middlewareAuthorize(macro, next)
 	}
 }
@@ -139,7 +139,7 @@ func middlewareAuthorize(macro *Macro, next echo.HandlerFunc) echo.HandlerFunc {
 
 		if !methodIsAllowed {
 			return c.JSON(405, map[string]interface{}{
-				"code": 405,
+				"code":    405,
 				"message": "方法不允许！",
 			})
 		}

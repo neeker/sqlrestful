@@ -29,27 +29,12 @@ package main
 import (
 	"log"
 	"strings"
-	"time"
 
 	"encoding/json"
 
 	"github.com/dop251/goja"
 	"gopkg.in/resty.v1"
-	"github.com/dgrijalva/jwt-go"
-
 )
-
-
-// genJWTRequestToken
-func genJWTRequestToken() (string, error) {
-	claims := &jwt.StandardClaims {
-    ExpiresAt: time.Now().Unix() + int64(jwtExpires),
-    Issuer:   jwtSecret,
-	}
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	ret, err := jwtToken.SignedString(jwtRSAPrivkey)
-	return ret, err
-}
 
 // initJSVM - creates a new javascript virtual machine
 func initJSVM(ctx map[string]interface{}) *goja.Runtime {
@@ -131,7 +116,7 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 		}
 	}
 
-	requestToken, err := genJWTRequestToken()
+	requestToken, err := macrosManager.JwtIdentityConfig().CreateRequestToken()
 
 	if err == nil {
 		if headers == nil {
@@ -147,7 +132,7 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 	if headers["Content-Type"] == "" {
 		headers["Content-Type"] = "application/json; charset=UTF-8"
 	}
-	
+
 	if nil != option["body"] {
 		body, _ = option["body"]
 	}
@@ -155,7 +140,7 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
 	if err != nil {
 		return map[string]interface{}{
-			"code": 5000,
+			"code":    5000,
 			"message": err.Error(),
 		}, nil
 	}
@@ -163,7 +148,7 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 	var respData map[string]interface{}
 	respCode := resp.StatusCode()
 
-	if respCode >= 200 &&  respCode < 400 {
+	if respCode >= 200 && respCode < 400 {
 		respCode = 0
 	}
 
@@ -174,18 +159,17 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 		for k, v := range rspHdrs {
 			rspHdrsNormalized[strings.ToLower(k)] = v[0]
 		}
-	
+
 		return map[string]interface{}{
 			"status":     resp.Status(),
 			"statusCode": resp.StatusCode(),
 			"headers":    rspHdrsNormalized,
-			"code": 			respCode,
+			"code":       respCode,
 			"body":       string(resp.Body()),
 		}, nil
 
 	}
-	
+
 	return respData, nil
 
 }
-

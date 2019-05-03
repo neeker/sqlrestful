@@ -28,7 +28,7 @@ package main
 
 import (
 	"github.com/labstack/echo"
-	
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -39,8 +39,8 @@ func routeHealth(c echo.Context) error {
 
 	retdata := make(map[string]interface{})
 
-	if *flagDBDriver != "" && *flagDBDSN != "" {
-		tstconn, err := sqlx.Connect(*flagDBDriver, *flagDBDSN)
+	if macrosManager.DatabaseConfig().IsDatabaseEnabled() {
+		tstconn, err := sqlx.Connect(macrosManager.DatabaseConfig().Driver, macrosManager.DatabaseConfig().Dsn)
 		if err != nil {
 			retcode = 500
 			errmsg = err.Error()
@@ -48,14 +48,14 @@ func routeHealth(c echo.Context) error {
 		} else {
 			retdata["database"] = "up"
 		}
-		
+
 		tstconn.Close()
 	} else {
 		retdata["database"] = "disabled"
 	}
 
-	if redisDb != nil {
-		err := redisDb.Ping().Err()
+	if macrosManager.DatabaseConfig().IsRedisEnabled() {
+		err := macrosManager.DatabaseConfig().redisClient.Ping().Err()
 		if err != nil {
 			retcode = 500
 			errmsg = err.Error()
@@ -67,24 +67,20 @@ func routeHealth(c echo.Context) error {
 		retdata["redis"] = "disabled"
 	}
 
-	if *flagRSAPrivkey != "" {
+	if macrosManager.JwtIdentityConfig().IsEnabled() {
 		retdata["jwt"] = "enabled"
 	} else {
 		retdata["jwt"] = "disabled"
 	}
 
-	retdata["routes"] = echoServer.Routes()
-
-	retdata["headers"] = c.Request().Header
-
 	respcode := 200
-	if (retcode != 0) {
+	if retcode != 0 {
 		respcode = retcode
 	}
 
 	return c.JSON(respcode, map[string]interface{}{
-		"code": retcode,
+		"code":    retcode,
 		"message": errmsg,
-		"data": retdata,
+		"data":    retdata,
 	})
 }

@@ -42,129 +42,62 @@ import (
 
 // Cache - 缓存配置
 type Cache struct {
-	Put  []string
-	Evit []string
-	Idle uint32
-	Live uint32
+	Put  []string //设置缓存列表
+	Evit []string //移除缓存列表
 }
 
-// Authorizer - 配置
-type Authorizer struct {
-	Anonymous bool     //是否允许匿名
-	Scope     string   //用户组织范围
-	Roles     []string //可访问的角色
-	Users     []string //可访问的用户
-	Policy    string   //判定策略，include表示包含、exclude表示排除
-}
-
-// JwtDefined - JWT定义
-type JwtDefined struct {
-	Rsa     string
-	Secret  string
-	Expires int
+// Author 作者
+type Author struct {
+	Name  string //名称
+	Email string //邮件
+	Url   string //URL
 }
 
 // Macro - a macro configuration
 type Macro struct {
-	Name    string
-	Desc    string
-	Version string
-	Author  string
-	Email   string
-
-	Methods     []string          //请求方法
-	Include     []string          //引用宏列表
-	Validators  map[string]string //参数校验
-	Authorizer  string            //
-	Security    *Authorizer
-	Jwt         *JwtDefined
-	Bind        map[string]string
-	Impl        string
-	Format      string
-	Exec        string
-	Provider    string
-	Aggregate   []string
-	Transformer string
-	Tags        []string
-	Model       map[string]map[string]string
-
-	Summary string
-
-	Path string
-
-	Total  string
-	Result string
-
-	Get    *Macro
-	Post   *Macro
-	Put    *Macro
-	Patch  *Macro
-	Delete *Macro
-	Cache  *Cache
-
-	name     string          //宏名称
-	rolesMap map[string]bool //要求角色
-	usersMap map[string]bool //排除角色
-
-	manager      *Manager
-	methodMacros map[string]*Macro
-}
-
-func getCacheKey(input map[string]interface{}) string {
-	if len(input) == 0 {
-		return ""
-	}
-	ret, _ := json.Marshal(input)
-	return string(ret)
-}
-
-// Put cache data
-func putCacheData(cacheNames []string, cacheKey string, val interface{}) (bool, error) {
-	var (
-		ret bool
-		err error
-	)
-	ret = false
-	for _, k := range cacheNames {
-		jsonData, _ := json.Marshal(val)
-		ret, err = redisDb.HSet(k, cacheKey, string(jsonData)).Result()
-		if err != nil {
-			if *flagDebug > 1 {
-				log.Printf("putcache(key=%s in %s) error: %v\n", cacheKey, k, err)
-			}
-			return false, err
-		}
-
-		if *flagDebug > 2 {
-			log.Printf("putcache(key=%s in %s) data: %s\n", cacheKey, k, jsonData)
-		}
-
-	}
-	return ret, nil
-}
-
-// Get cache data
-func getCacheData(cacheNames []string, cacheKey string) (interface{}, error) {
-	for _, k := range cacheNames {
-		if redisDb.HExists(k, cacheKey).Val() {
-			jsonData, _ := redisDb.HGet(k, cacheKey).Result()
-			var outData interface{}
-			err := json.Unmarshal([]byte(jsonData), &outData)
-			if err != nil {
-				if *flagDebug > 1 {
-					log.Printf("getcache(key=%s in %s) error: %v\n", cacheKey, k, err)
-				}
-				return nil, err
-			}
-
-			if *flagDebug > 2 {
-				log.Printf("getcache((key=%s in %s)) data: %s\n", cacheKey, k, jsonData)
-			}
-
-			return outData, nil
-		}
-	}
-	return nil, nil
+	Brand        string                       //起始标记
+	Base         string                       // 起始地址
+	Name         string                       //名称
+	Desc         string                       //描述
+	Version      string                       //版本
+	Author       *Author                      //作者
+	Swagger      bool                         //是否启用SWAGGER-UI
+	Debug        int                          //调试级别
+	Const        map[string]string            //常量
+	Methods      []string                     //请求方法
+	Include      []string                     //引用宏列表
+	Validators   map[string]string            //参数校验
+	Authorizer   string                       //身份校验
+	Security     *SecurityConfig              //安全验证配置
+	Jwt          *JwtConfig                   //JWT身份配置
+	Db           *DatabaseConfig              //数据库配置
+	Bind         map[string]string            //绑定表达式
+	Impl         string                       //实现语言：js、sql、cmd
+	Format       string                       //应答格式：enclosed（封装）、origin（原样）
+	Exec         string                       //执行实现
+	Provider     string                       //实现提供器
+	Aggregate    []string                     //组合实现
+	Transformer  string                       //转换器
+	Tags         []string                     //定义标签
+	Model        map[string]map[string]string //应答模型
+	Proxy        []string                     //前置代理
+	Summary      string                       //接口概述 Desc优先
+	Path         string                       //实现路径
+	Total        string                       //分页查询的记录总数实现
+	Result       string                       //结果类型：page、list、object、nil
+	Get          *Macro                       //GET实现
+	Post         *Macro                       //POSTs实现
+	Put          *Macro                       //PUT实现
+	Patch        *Macro                       //PATCH实现
+	Delete       *Macro                       //DELETE实现
+	Cache        *Cache                       //缓存配置
+	file         string                       //实现文件
+	name         string                       //宏名称
+	rolesMap     map[string]bool              //要求角色
+	usersMap     map[string]bool              //排除角色
+	manager      *Manager                     //管理器
+	methodMacros map[string]*Macro            //内置的方法宏
+	consts       map[string]interface{}       //常量表
 }
 
 // Call - executes the macro
@@ -215,10 +148,11 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	)
 
 	//获取缓存
-	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
-		cacheKey = getCacheKey(inputKey)
+	if m.manager.DatabaseConfig().IsRedisEnabled() && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
+		cacheKey = m.manager.DatabaseConfig().BuildCacheKey(inputKey)
+
 		if cacheKey != "" && len(m.Cache.Put) > 0 {
-			out, err = getCacheData(m.Cache.Put, cacheKey)
+			out, err = m.manager.DatabaseConfig().GetCacheData(m.Cache.Put, cacheKey)
 			if err != nil {
 				return nil, err
 			}
@@ -365,10 +299,8 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		}
 
 		//设置缓存
-		if redisDb != nil && m.Cache != nil && len(m.Cache.Put) > 0 {
-			if cacheKey != "" && len(m.Cache.Put) > 0 {
-				putCacheData(m.Cache.Put, cacheKey, pageRet)
-			}
+		if m.manager.DatabaseConfig().IsRedisEnabled() && m.Cache != nil && len(m.Cache.Put) > 0 {
+			m.manager.DatabaseConfig().PutCacheData(m.Cache.Put, cacheKey, pageRet)
 		}
 
 		return pageRet, nil
@@ -425,16 +357,10 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 	}
 
 	//设置缓存
-	if redisDb != nil && m.Cache != nil && (len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
-		if cacheKey != "" && len(m.Cache.Put) > 0 {
-			putCacheData(m.Cache.Put, cacheKey, out)
-		}
-
-		if len(m.Cache.Evit) > 0 {
-			for _, k := range m.Cache.Evit {
-				redisDb.Del(k)
-			}
-		}
+	if m.manager.DatabaseConfig().IsRedisEnabled() && m.Cache != nil &&
+		(len(m.Cache.Put) > 0 || len(m.Cache.Evit) > 0) {
+		m.manager.DatabaseConfig().PutCacheData(m.Cache.Put, cacheKey, out)
+		m.manager.DatabaseConfig().ClearCaches(m.Cache.Evit)
 	}
 
 	return out, nil
@@ -442,12 +368,17 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 
 // execSQLTotal - execute the specified sql query
 func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64, error) {
+
+	if !m.manager.DatabaseConfig().IsDatabaseEnabled() {
+		return 0, fmt.Errorf("Database forget enable??")
+	}
+
 	args, err := m.buildBind(input)
 	if err != nil {
 		return 0, err
 	}
 
-	conn, err := sqlx.Open(*flagDBDriver, *flagDBDSN)
+	conn, err := sqlx.Open(m.manager.DatabaseConfig().Driver, m.manager.DatabaseConfig().Dsn)
 	if err != nil {
 		if *flagDebug > 0 {
 			log.Printf("run %s total(sql) open database error: %v\n", m.name, err)
@@ -508,12 +439,17 @@ func (m *Macro) execSQLTotal(sqls []string, input map[string]interface{}) (int64
 
 // execSQLQuery - execute the specified sql query
 func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (interface{}, error) {
+
+	if !m.manager.DatabaseConfig().IsDatabaseEnabled() {
+		return nil, fmt.Errorf("Database forget enable??")
+	}
+
 	args, err := m.buildBind(input)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := sqlx.Open(*flagDBDriver, *flagDBDSN)
+	conn, err := sqlx.Open(m.manager.DatabaseConfig().Driver, m.manager.DatabaseConfig().Dsn)
 	if err != nil {
 		if *flagDebug > 0 {
 			log.Printf("run %s exec(sql) open database error: %v\n", m.name, err)
@@ -581,6 +517,7 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 // resolveExecScript - run the javascript function
 func (m *Macro) resolveExecScript(javascript string, input map[string]interface{}) (interface{}, error) {
 	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "provider",
@@ -605,6 +542,7 @@ func (m *Macro) resolveExecScript(javascript string, input map[string]interface{
 func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) (interface{}, error) {
 
 	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "exec",
@@ -628,6 +566,7 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 // execJavaScriptTotal - run the javascript total function
 func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interface{}) (int64, error) {
 	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "total",
@@ -686,6 +625,7 @@ func (m *Macro) transform(data interface{}) (interface{}, error) {
 	}
 
 	vm := initJSVM(map[string]interface{}{
+		"$const":  m.consts,
 		"$result": data,
 		"$name":   m.name,
 		"$stage":  "transformer",
@@ -714,6 +654,7 @@ func (m *Macro) authorize(input map[string]interface{}) (bool, error) {
 	}
 
 	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "authorizer",
@@ -767,6 +708,7 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 	}
 
 	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "validators",
@@ -794,13 +736,47 @@ func (m *Macro) validate(input map[string]interface{}) (ret []string, err error)
 	return ret, nil
 }
 
-// buildBind - build the bind vars
-func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{}, error) {
-	if len(m.Bind) < 1 {
+func (m *Macro) buildConst() (map[string]interface{}, error) {
+	if len(m.Const) == 0 {
 		return nil, nil
 	}
 
 	vm := initJSVM(map[string]interface{}{
+		"$name":  m.name,
+		"$stage": "const",
+	})
+	ret := map[string]interface{}{}
+	for k, src := range m.Const {
+
+		if *flagDebug > 2 {
+			log.Printf("run %s const(%s): %s\n", m.name, k, src)
+		}
+
+		if strings.ContainsAny(src, "$'\"") || strings.Contains(src, "()") || strings.Contains(src, "return") {
+			val, err := vm.RunString(src)
+			if err != nil {
+				if *flagDebug > 0 {
+					log.Printf("run %s const(%s=\"%s\") error: %v\n", m.name, k, src, err)
+				}
+				return nil, fmt.Errorf("run %s const(%s=\"%s\") error: %v", m.name, k, src, err)
+			}
+			ret[k] = val.Export()
+		} else {
+			ret[k] = src
+		}
+	}
+
+	return ret, nil
+}
+
+// buildBind - build the bind vars
+func (m *Macro) buildBind(input map[string]interface{}) (map[string]interface{}, error) {
+	if len(m.Bind) == 0 {
+		return nil, nil
+	}
+
+	vm := initJSVM(map[string]interface{}{
+		"$const": m.consts,
 		"$input": input,
 		"$name":  m.name,
 		"$stage": "bind",
@@ -937,10 +913,6 @@ func (m *Macro) execCommand(cmdline string, input map[string]interface{}) (inter
 
 }
 
-func (m *Macro) isDefinedSecurity() bool {
-	return m.Security != nil
-}
-
 func (m *Macro) isAnonymousAllow() bool {
 	return m.Security == nil || m.Security.Anonymous
 }
@@ -954,58 +926,72 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 		options map[string]interface{}
 	)
 
-	//获取用户ID
-	userid, _ = input["http_x_credential_userid"].(string)
-	idtype = "id"
-
-	if *flagUserScope != "" {
-		scope, _ = input["http_x_user_scope"].(string)
-		if scope != *flagUserScope {
-			if *flagDebug > 2 {
-				log.Printf("%s run security user scope error:  %s != %s\n", m.name, scope, *flagUserScope)
-			}
-			return false, nil
-		}
-	}
-
-	if userid == "" {
-		//获取用户名
-		userid, _ = input["http_x_credential_username"].(string)
-		idtype = "uname"
-		if userid == "" {
-			//获取TAM兼容用户
-			userid, _ = input["http_iv_user"].(string)
-			idtype = "uname"
-		}
-		//从命令行配置中获取ID类型
-		if *flagUserIDType != "" {
-			idtype = *flagUserIDType
-		}
-	}
-
 	//如果允许匿名则直接返回
 	if m.isAnonymousAllow() {
 		return true, nil
 	}
 
+	//获取用户ID
+	if m.manager.meta.Security.From != "" {
+		userid, _ = input[m.manager.meta.Security.From].(string)
+		if m.manager.meta.Security.Idtype != "" {
+			idtype = m.manager.meta.Security.Idtype
+		} else {
+			idtype = "uname"
+		}
+	} else {
+		userid, _ = input["http_x_credential_userid"].(string)
+		idtype = "id"
+
+		if userid == "" {
+			//获取用户名
+			userid, _ = input["http_x_credential_username"].(string)
+			if userid == "" {
+				//获取TAM兼容用户
+				userid, _ = input["http_iv_user"].(string)
+			}
+			//从命令行配置中获取ID类型
+			if m.manager.meta.Security.Idtype != "" {
+				idtype = m.manager.meta.Security.Idtype
+			} else {
+				idtype = "uname"
+			}
+		}
+
+	}
+
 	//用户未登录则直接退出
 	if userid == "" {
+		if *flagDebug > 2 {
+			log.Printf("%s run security deny: user(%s) not found\n", m.name, userid)
+		}
 		return false, nil
+	}
+
+	//获取用户组织域
+	if m.manager.meta.Security.Scope != "" {
+		scope, _ = input["http_x_user_scope"].(string)
+		if scope != m.manager.meta.Security.Scope {
+			if *flagDebug > 2 {
+				log.Printf("%s run security deny:  %s not equals %s\n", m.name, scope, m.manager.meta.Security.Scope)
+			}
+			return false, nil
+		}
 	}
 
 	//判断用户是否有权访问
 	if m.usersMap != nil && len(m.usersMap) > 0 {
 		_, inUsers := m.usersMap[userid]
-		if m.Security.Policy == "exclude" {
+		if m.Security.Policy == "deny" {
 			if inUsers {
 				if *flagDebug > 2 {
-					log.Printf("%s run security user exclude: %s in %v\n", m.name, userid, m.usersMap)
+					log.Printf("%s run security user deny: %s in %v\n", m.name, userid, m.usersMap)
 				}
 				return false, nil
 			}
 		} else if !inUsers {
 			if *flagDebug > 2 {
-				log.Printf("%s run security user include: %s not in %v\n", m.name, userid, m.usersMap)
+				log.Printf("%s run security user allow: %s not in %v\n", m.name, userid, m.usersMap)
 			}
 			return false, nil
 		}
@@ -1022,8 +1008,8 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 	}
 
 	//帐号获取接口地址
-	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%sidtype=%s%s&contain_roles=true&timestamp=%d",
-		*flagUserAPI, userid, idtype, scopeValue, time.Now().UnixNano())
+	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%s&idtype=%s%s&contain_roles=true&timestamp=%d",
+		m.manager.meta.Security.Api, userid, idtype, scopeValue, time.Now().UnixNano())
 
 	out, err := jsJWTFetchfunc(accAPIURL, options)
 
@@ -1035,13 +1021,28 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	if out["code"] == 404 {
+	resultCode, codeFound := out["code"].(int)
+
+	if codeFound {
+		if *flagDebug > 0 {
+			log.Printf("%s run security call (%s) error: %v\n",
+				m.name, accAPIURL, out)
+		}
+		return false, fmt.Errorf("%s run security call (%s) error: %v\n",
+			m.name, accAPIURL, out)
+	}
+
+	if resultCode == 404 {
+		if *flagDebug > 0 {
+			log.Printf("%s run security call (%s) user not found: %v\n",
+				m.name, accAPIURL, out["message"])
+		}
 		return false, nil
 	}
 
-	if out["code"] != 0 {
+	if resultCode != 0 {
 		if *flagDebug > 0 {
-			log.Printf("%s run security fetch (%s) error: %v\n",
+			log.Printf("%s run security call (%s) error: %v\n",
 				m.name, accAPIURL, out["message"])
 		}
 		return false, fmt.Errorf("%v", out["message"])
@@ -1051,21 +1052,25 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 
 	if userItem == nil {
 		if *flagDebug > 0 {
-			log.Printf("%s run security fetch (%s) error data: %v\n", m.name, accAPIURL, out)
+			log.Printf("%s run security call (%s) error data: %v\n", m.name, accAPIURL, out)
 		}
-		return false, fmt.Errorf("%s run security fetch (%s) error data: %v", m.name, accAPIURL, out)
+		return false, fmt.Errorf("%s run security call (%s) error data: %v", m.name, accAPIURL, out)
 	}
 
-	userRoles, _ := userItem["roles"].([]string)
+	userRoles, _ := userItem["roles"].([]interface{})
 
 	if m.rolesMap != nil && len(m.rolesMap) > 0 {
 
-		if m.Security.Policy == "exclude" {
+		if m.Security.Policy == "deny" {
 			for _, r := range userRoles {
-				if _, inRoles := m.rolesMap[r]; inRoles {
+				rn, cv := r.(string)
+				if !cv {
+					continue
+				}
+				if _, inRoles := m.rolesMap[rn]; inRoles {
 					if *flagDebug > 2 {
-						log.Printf("%s run security roles exclude: user(%s) role(%s) in %v\n",
-							m.name, userid, r, m.rolesMap)
+						log.Printf("%s run security roles deny: user(%s) role(%s) in %v\n",
+							m.name, userid, rn, m.rolesMap)
 					}
 					return false, nil
 				}
@@ -1073,12 +1078,16 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 		} else {
 			userRolesMap := map[string]bool{}
 			for _, r := range userRoles {
-				userRolesMap[r] = true
+				rn, cv := r.(string)
+				if !cv {
+					continue
+				}
+				userRolesMap[rn] = true
 			}
 			for k := range m.rolesMap {
 				if _, inRoles := userRolesMap[k]; !inRoles {
 					if *flagDebug > 2 {
-						log.Printf("%s run security roles include: user(%s) role(%s) not in %v\n",
+						log.Printf("%s run security roles allow: user(%s) role(%s) not in %v\n",
 							m.name, userid, k, m.rolesMap)
 					}
 					return false, nil

@@ -27,12 +27,9 @@
 package main
 
 import (
-	"crypto/rsa"
 	"errors"
 	"flag"
 	"runtime"
-
-	"github.com/go-redis/redis"
 )
 
 var (
@@ -78,16 +75,11 @@ var (
 )
 
 var (
-	macrosManager    *Manager
-	redisDb          *redis.Client
-	jwtRSAPrivkey    *rsa.PrivateKey
-	jwtSecret        string
-	jwtExpires       int
-	trustedProxyList []string
+	macrosManager *Manager
 )
 
 const (
-	serverVersion = "v0.8ex"
+	serverVersion = "v0.9ex"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _
@@ -96,8 +88,8 @@ const (
    ___) | |_| | |___|  _ <  __/\__ \ |_|  _| |_| | |
   |____/ \__\_\_____|_| \_\___||___/\__|_|  \__,_|_|
 										
-  嘿，谁用谁知道爽~               特别感谢SQLer
-                 --痞子飞猪(13317312768@qq.com)   
-  
+   CloundNative                        Thanks SQLer
+   Author:                neeker(13317312768@qq.com)   
+
 	`
 )
