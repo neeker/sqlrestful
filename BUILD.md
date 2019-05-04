@@ -2,20 +2,20 @@
 
 ## `Linux`镜像编译
 
-### 完整功能版编译
+### 无`oci8`编译
 
 ```sh
-docker build -t gitlab.snz1.cn:2008/go/sqlrestful:v0.7ex .
+docker build -t snz1/sqlrestful .
 ```
 
-### 无`oci`版编译
+### 加上`oci8`编译
 
 ```sh
-docker build --build-arg ORACLE=disabled -t gitlab.snz1.cn:2008/go/sqlrestful:v0.7ex .
+docker build --build-arg GOBUILD_TAGS=oracle -t snz1/sqlrestful .
 ```
 
 ## `Windows`版编译
 
-```
+```cmd
 win\build.bat
 ```

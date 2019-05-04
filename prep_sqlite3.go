@@ -1,4 +1,4 @@
-// +build !windows
+// +build sqlite3
 
 /*********************************************
                    _ooOoo_
@@ -28,12 +28,13 @@
 
 package main
 
-import(
-	_ "github.com/mattn/go-sqlite3"
+
+import (
 	_ "github.com/mattn/go-oci8"
 )
 
-func prepInit()(int) {
+func preLoadSQLite3()(int) {
+  supportDatabases = append(supportDatabases, "sqlte3(SQLite3)")
 	return 0
 }
 

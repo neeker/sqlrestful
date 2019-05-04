@@ -27,9 +27,10 @@
 package main
 
 import (
-	"github.com/labstack/echo"
+	"runtime"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo"
 )
 
 // routeHealth
@@ -47,11 +48,21 @@ func routeHealth(c echo.Context) error {
 			retdata["database"] = "down"
 		} else {
 			retdata["database"] = "up"
+			tstconn.Close()
 		}
-
-		tstconn.Close()
 	} else {
 		retdata["database"] = "disabled"
+	}
+
+	retdata["runtime"] = map[string]interface{}{
+		"arch": runtime.GOARCH,
+		"os":   runtime.GOOS,
+	}
+
+	retdata["provider"] = map[string]interface{} {
+		"name": "SQLRestful",
+		"version": serverVersion,
+		"supports": supportDatabases,
 	}
 
 	if macrosManager.DatabaseConfig().IsRedisEnabled() {

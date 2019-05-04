@@ -75,7 +75,8 @@ var (
 )
 
 var (
-	macrosManager *Manager
+	macrosManager    *Manager
+	supportDatabases []string
 )
 
 const (

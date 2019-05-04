@@ -1,4 +1,4 @@
-// +build windows
+// +build !sqlite3
 
 /*********************************************
                    _ooOoo_
@@ -28,16 +28,7 @@
 
 package main
 
-import (
-	"fmt"
-	"time"
-)
-
-var (
-	startHold string
-)
-
-func prepInit() int {
-	startHold = fmt.Sprintf("start on %v", time.Now())
+func preLoadSQLite3()(int) {
 	return 0
 }
+

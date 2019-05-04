@@ -46,7 +46,16 @@ import (
 
 func init() {
 
-	prepInit()
+	supportDatabases = []string {
+		"postgres(PostgresQL)",
+		"mysql(MySQL)",
+		"mssql(SQLServer)",
+		"hdb(SAP HANA)",
+		"clickhouse(Yandex ClickHouse)",
+	}
+
+	preLoadSQLite3()
+	preLoadOci8()
 
 	usage := flag.Usage
 	flag.Usage = func() {

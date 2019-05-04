@@ -1,6 +1,6 @@
 FROM gitlab.snz1.cn:2008/go/cgobuild:v2.0
 
-ARG ORACLE=enabled
+ARG GOBUILD_TAGS
 
 ENV TZ=Asia/Shanghai
 
@@ -12,17 +12,9 @@ ADD *.go /tmp/sqlrestful/
 
 ADD *.mod /tmp/sqlrestful/
 
-ADD linux/*.sh /tmp/sqlrestful/linux/
-
-RUN chmod +x /tmp/sqlrestful/linux/build.sh
-
-RUN echo "build oracle oci $ORACLE"
-
-RUN /tmp/sqlrestful/linux/build.sh "$ORACLE"
-
 RUN cd /tmp/sqlrestful && \
    CGO_ENABLED=1 GO111MODULE=on \
-   go build --tags "linux sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json"
+   go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json $GOBUILD_TAGS"
 
 RUN cp -f /tmp/sqlrestful/sqlrestful /usr/local/bin
 

@@ -9,11 +9,11 @@ else
 fi
 
 if [ "$BUILD_ORACLE" == "disabled" ];then
-  sed -i "s,github.com/mattn/go-oci8,//github.com/mattn/go-oci8,g" /tmp/sqlrestful/*.mod
+  CGO_ENABLED=1 GO111MODULE=on \
+  go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json"
+else
+  CGO_ENABLED=1 GO111MODULE=on \
+  go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json oracle"
 fi
 
-if [ "$BUILD_ORACLE" == "disabled" ];then
-    sed -i "s,_ \"github.com/mattn/go-oci8\",//_ \"github.com/mattn/go-oci8\",g" /tmp/sqlrestful/prep.go
-fi
-
-exit 0
+exit $?

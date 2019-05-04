@@ -42,9 +42,17 @@ SET GO111MODULE=on
 
 cd %curr_path%/..
 
+
+if "%1" == "386" (
+SET GOARCH=386
+SET BUILD_TAGS="windows"
+) else (
 SET GOARCH=amd64
+SET BUILD_TAGS="windows"
+)
+
 SET GOOS=windows
 
-go build --tags "windows"
+go build --tags %BUILD_TAGS%
 
 cd %old_pwd%
