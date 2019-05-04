@@ -35,7 +35,7 @@
       "filename": "FOOTER.md"
     },
     "edit-link": {
-      "base": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs",
+      "base": "https://github.com/neeker/sqlrestful/tree/master/docs",
       "label": "编辑文档"
     },
     "include-codeblock": {
