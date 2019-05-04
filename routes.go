@@ -143,7 +143,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 			schemaRef := "#/definitions/result"
 
 			if macro.Model != nil {
-				schemaRef = macro.name + ".result"
+				schemaRef = "#/definitions/" + macro.name + ".result"
 			}
 
 			for _, k := range definedMethods {
@@ -188,7 +188,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 				schemaRef := "#/definitions/result"
 
 				if childm.Model != nil {
-					schemaRef = childm.name + ".result"
+					schemaRef = "#/definitions/" + childm.name + ".result"
 				}
 
 				tmpDescValue := childm.Summary
@@ -489,12 +489,43 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 	if macro.Model != nil {
 		switch macro.Format {
 		case "origin":
-			definitionsMap[definitionName] = map[string]interface{}{
-				"properties": macro.Model,
-				"type":       "object",
+			switch macro.Result {
+			case "list":
+				definitionsMap[definitionName] = map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"properties": macro.Model,
+						"type":       "object",
+					},
+				}
+			case "page":
+				definitionsMap[definitionName] = map[string]interface{}{
+					"properties": map[string]interface{}{
+						"total": map[string]interface{}{
+							"type":   "integer",
+							"format": "int32",
+						},
+						"offset": map[string]interface{}{
+							"type":   "integer",
+							"format": "int32",
+						},
+						"data": map[string]interface{}{
+							"items": map[string]interface{}{
+								"properties": macro.Model,
+								"type":       "object",
+							},
+							"type": "array",
+						},
+					},
+					"type": "object",
+				}
+			default:
+				definitionsMap[definitionName] = map[string]interface{}{
+					"properties": macro.Model,
+					"type":       "object",
+				}
 			}
 		case "nil":
-		default:
 			definitionsMap[definitionName] = map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -505,11 +536,80 @@ func buildResultDefinitionMap(macro *Macro, definitionsMap map[string]interface{
 					"message": map[string]interface{}{
 						"type": "string",
 					},
-					"data": map[string]interface{}{
-						"properties": macro.Model,
-						"type":       "object",
-					},
 				},
+			}
+		default:
+			switch macro.Result {
+			case "list":
+				definitionsMap[definitionName] = map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"code": map[string]interface{}{
+							"type":   "integer",
+							"format": "int32",
+						},
+						"message": map[string]interface{}{
+							"type": "string",
+						},
+						"data": map[string]interface{}{
+							"items": map[string]interface{}{
+								"properties": macro.Model,
+								"type":       "object",
+							},
+							"type": "array",
+						},
+					},
+				}
+			case "page":
+				definitionsMap[definitionName] = map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"code": map[string]interface{}{
+							"type":   "integer",
+							"format": "int32",
+						},
+						"message": map[string]interface{}{
+							"type": "string",
+						},
+						"data": map[string]interface{}{
+							"properties": map[string]interface{}{
+								"total": map[string]interface{}{
+									"type":   "integer",
+									"format": "int32",
+								},
+								"offset": map[string]interface{}{
+									"type":   "integer",
+									"format": "int32",
+								},
+								"data": map[string]interface{}{
+									"items": map[string]interface{}{
+										"properties": macro.Model,
+										"type":       "object",
+									},
+									"type": "array",
+								},
+							},
+							"type": "object",
+						},
+					},
+				}
+			default:
+				definitionsMap[definitionName] = map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"code": map[string]interface{}{
+							"type":   "integer",
+							"format": "int32",
+						},
+						"message": map[string]interface{}{
+							"type": "string",
+						},
+						"data": map[string]interface{}{
+							"properties": macro.Model,
+							"type":       "object",
+						},
+					},
+				}
 			}
 		}
 	} else {

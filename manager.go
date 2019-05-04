@@ -30,12 +30,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"sync"
 	"text/template"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/hashicorp/hcl"
 )
@@ -417,7 +418,7 @@ func NewManager(configpath string) (*Manager, error) {
 		meta.Jwt.Expires = 1800
 	}
 
-	if meta.Proxy == nil {
+	if meta.Proxy == nil && *flagTrustedProxy != "" {
 		meta.Proxy = strings.Split(*flagTrustedProxy, ",")
 	}
 

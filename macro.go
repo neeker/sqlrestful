@@ -1028,7 +1028,7 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 			log.Printf("%s run security call (%s) error: %v\n",
 				m.name, accAPIURL, out)
 		}
-		return false, fmt.Errorf("%s run security call (%s) error: %v\n",
+		return false, fmt.Errorf("%s run security call (%s) error: %v",
 			m.name, accAPIURL, out)
 	}
 
