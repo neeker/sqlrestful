@@ -10,10 +10,10 @@ fi
 
 if [ "$BUILD_ORACLE" == "disabled" ];then
   CGO_ENABLED=1 GO111MODULE=on \
-  go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json"
+  go build --tags "linux sqlite3 sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json"
 else
   CGO_ENABLED=1 GO111MODULE=on \
-  go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json oracle"
+  go build --tags "linux sqlite3 sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json oracle"
 fi
 
 exit $?

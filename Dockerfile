@@ -14,7 +14,7 @@ ADD *.mod /tmp/sqlrestful/
 
 RUN cd /tmp/sqlrestful && \
    CGO_ENABLED=1 GO111MODULE=on \
-   go build --tags "linux sqlite sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json $GOBUILD_TAGS"
+   go build --tags "linux sqlite3 sqlite_stat4 sqlite_allow_uri_authority sqlite_fts5 sqlite_introspect sqlite_json $GOBUILD_TAGS"
 
 RUN cp -f /tmp/sqlrestful/sqlrestful /usr/local/bin
 
