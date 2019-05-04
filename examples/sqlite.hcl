@@ -1,3 +1,32 @@
+//描述信息
+_meta {
+
+  //名称
+  name = "SQLRestful"
+
+  //版本
+  version = "1.0"
+
+  //描述
+  desc = "SQLRestful，您的云原生应用生产力工具！"
+
+  //作者
+  author {
+    //姓名
+    name = "痞子飞猪"
+    //邮箱
+    email  = "13317312768@qq.com"
+  }
+
+  //数据库配置
+  db {
+    //数据库驱动名
+    driver = "sqlite3"
+    dsn = "sqlte3.db?create=true"
+  }
+
+}
+
 //SQL数据库
 _create_db {
 
@@ -19,7 +48,7 @@ root {
 
   path = "/"
 
-  summary = "跳转至接口文档"
+  desc = "跳转至接口文档"
 
   tags = [ "1.测试接口" ]
 
@@ -32,7 +61,7 @@ root {
     })()
     JS
 
-    ret = "redirect"
+    format = "redirect"
   }
 }
 
@@ -49,7 +78,7 @@ dataxs {
   //分页查询
   get {
 
-    summary = "分页查询数据"
+    desc = "分页查询数据"
 
     //根据条件返回执行脚本
     provider = <<JS
@@ -80,7 +109,7 @@ dataxs {
   //添加数据
   post {
 
-    summary = "添加数据"
+    desc = "添加数据"
 
     //输入参数
     bind {
@@ -134,7 +163,7 @@ datax {
 
   get {
 
-    summary = "根据ID获取数据"
+    desc = "根据ID获取数据"
 
     //参数绑定
     bind {
@@ -169,7 +198,7 @@ datax {
 
   put {
 
-    summary = "根据ID修改数据"
+    desc = "根据ID修改数据"
 
     //参数绑定
     bind {
@@ -209,7 +238,7 @@ datax {
 
   delete {
 
-    summary = "根据ID修改数据"
+    desc = "根据ID修改数据"
 
     //参数绑定
     bind {
@@ -222,7 +251,7 @@ datax {
     SQL
 
     //不返回数据
-    ret = "nil"
+    format = "nil"
 
   }
 

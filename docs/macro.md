@@ -11,7 +11,7 @@ api_name {
   tags = ["标签"]
 
   //摘要描述（用于swagger文档输出，可忽略）
-  summary = ""
+  desc = ""
 
   //引入其他宏定义
   include = ["_boot"]
@@ -23,9 +23,6 @@ api_name {
   validators {
     value = "express value" //表达式为真表示校验通过
   }
-
-  //受信任的前置代理IP匹配表达式，请求的IP在匹配列表中的则通过验证，否则返回403
-  proxy = ["*"]
 
   //身份验证：返回true表示身份验证通过（可忽略）
   authorizer = <<JS
@@ -53,10 +50,10 @@ api_name {
     users = [ "neeker" ]
 
     //角色或用户判定策略：
-    //      为include时表示请求用户必须包含roles中定义的角色、用户必须在users定义的列表中
-    //      为exclude时表示请求用户不能是roles定义的角色、用户不能再users定义的列表中
+    //      为allow时表示请求用户必须包含roles中定义的角色、用户必须在users定义的列表中
+    //      为deny时表示请求用户不能是roles定义的角色、用户不能再users定义的列表中
     //条件不满足则返回403应答
-    policy = "include"
+    policy = "allow"
 
   }
 
@@ -137,7 +134,7 @@ name {
   tags = ["标签"]
 
   //摘要描述（可忽略）
-  summary = ""
+  desc = ""
 
   //接口GET请求方法宏定义
   get {

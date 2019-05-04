@@ -71,6 +71,3 @@ docker run -ti --rm -p 80:80 snz1/sqlrestful \
 
 <img src="docs/img/swagger.png" width="80%" > <br>
 
-## 计划实现
-
- [ ] 添加后台接口的安全判定

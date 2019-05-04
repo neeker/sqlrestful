@@ -44,7 +44,7 @@ test {
   get {
 
     //概要描述
-    summary = "获取分页数据"
+    desc = "获取分页数据"
 
     //绑定参数
     bind {
@@ -68,7 +68,7 @@ test {
   post {
 
     //概要描述
-    summary = "新增数据"
+    desc = "新增数据"
 
     //参数绑定
     bind {

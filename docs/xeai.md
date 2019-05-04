@@ -35,7 +35,7 @@
     //      为include时表示请求用户必须包含roles中定义的角色、用户必须在users定义的列表中
     //      为exclude时表示请求用户不能是roles定义的角色、用户不能再users定义的列表中
     //条件不满足则返回403应答
-    policy = "include"
+    policy = "allow"
 
   }
 

@@ -1,3 +1,16 @@
+//配置
+_meta {
+
+  //常量
+
+  const {
+
+    var1 = "test"
+
+  }
+
+}
+
 //对象集
 tables {
 
@@ -7,29 +20,26 @@ tables {
   //标签
   tags = ["1.SQL脚本实现的微服务接口"]
 
+  //身份验证
+  security {
+
+    roles = ["ADMIN"]
+
+    policy = "deny"
+
+  }
+
   //获取对象集数据
   get {
 
     //概述
-    summary = "获取数据库中的所有数据表"
+    desc = "获取数据库中的所有数据表"
 
     //返回记录总数，加了此定义则返回分页对象(强制type=page)
     total = <<SQL
       SELECT count(tablename) FROM pg_tables 
       WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%';
     SQL
-
-    //请求验证
-    authorizer = <<JS
-    (function(){
-      //获取请求头“X-Credential-Userid”内容，通过网关请求的用户身份ID
-      var user_id = $input.http_x_credential_userid
-      if (user_id === undefined || user_id === "") {
-        //return false
-      }
-      return true
-    })()
-    JS
 
     //输入参数绑定
     bind {
@@ -68,7 +78,7 @@ table_item {
     result = "object"
 
     //概述
-    summary = "获取指定名称的数据表信息"
+    desc = "获取指定名称的数据表信息"
 
     //参数绑定，input表示请求参数
     bind {
@@ -121,7 +131,7 @@ test_js {
   get {
 
     //概述
-    summary = "调用其他第三方接口测试"
+    desc = "调用其他第三方接口测试"
 
     //使用JavaScript实现
     impl = "js"
@@ -151,13 +161,13 @@ test_js {
     JS
 
     //不封装返回类型
-    ret = "origin"
+    format = "origin"
   }
 
   post {
 
     //概述
-    summary = "POST方法实现测试"
+    desc = "POST方法实现测试"
 
     impl = "js"
 
