@@ -11,14 +11,13 @@ notifications:
     on_failure: always
 
 install:
-  - npm install -g gitbook-cli
-  - gitbook install
+  - cd docs && npm install -g gitbook-cli && gitbook install
 
 script:
-  - gitbook build
+  - cd docs && gitbook build
 
 after_script:
-  - cd _book
+  - cd docs/_book
   - git init
   - git remote add origin https://${REF}
   - git add .
