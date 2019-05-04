@@ -14,10 +14,10 @@ install:
   - cd docs && npm install -g gitbook-cli && gitbook install
 
 script:
-  - cd docs && gitbook build
+  - gitbook build
 
 after_script:
-  - cd docs/_book
+  - cd _book
   - git init
   - git remote add origin https://${REF}
   - git add .
