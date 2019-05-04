@@ -1,6 +1,6 @@
 {
-  "title": "SQLRestful 快速实现SQL转Restful微服务接口的云原生开发工具",
-  "description": "SQLRestful使用说明文档",
+  "title": "SQLRestful",
+  "description": "使用SQL与Javascript的云原生开发工具",
   "language": "zh-hans",
   "gitbook": "3.2.2",
   "theme-default": {
@@ -71,14 +71,14 @@
       "style": "flat"
     },
     "versions": {
-      "gitbookConfigURL": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs/book.json",
+      "gitbookConfigURL": "https://github.com/neeker/sqlrestful/tree/master/docs/book.json",
       "options": [{
-        "value": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs",
-        "text": "v0.8ex"
+        "value": "https://github.com/neeker/sqlrestful/tree/master/docs",
+        "text": "v0.9ex"
       }]
     },
     "sitemap-general": {
-      "prefix": "https://snz1.cn/gitlab/go/sqlrestful/tree/ex/docs"
+      "prefix": "https://github.com/neeker/sqlrestful/tree/master/docs"
     },
     "simple-page-toc": {
       "maxDepth": 3,

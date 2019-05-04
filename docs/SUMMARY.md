@@ -1,13 +1,13 @@
 # Summary
 
-* [0、SQLRestful](README.md)
-* [1、设计初衷](origin.md)
-* [2、入门示例](start.md)
+* [0、`SQLRestful`概要说明](README.md)
+* [1、`SQLRestful`设计初衷](origin.md)
+* [2、`SQLRestful`入门示例](start.md)
 * [3、`HCL`配置语言入门](hcl.md)
 * [4、`SQLRestful`语法结构](macros.md)
   * [4.1、`Restful`接口定义语法结构](macro.md)
   * [4.2、`Restful`接口返回的数据格式](ret.md)
-  * [4.3、`SQL`实现`Restful`接口说明](sql.md)
+  * [4.3、`SQL`参数绑定及返回值约定](sql.md)
   * [4.5、`SQLRestful`的`JS`脚本能力](js.md)
 * [5、`SQLRestful`进阶指南](professor.md)
   * [5.1 根据请求参数实现条件分支](sqlx.md)

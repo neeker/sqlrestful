@@ -1,4 +1,11 @@
-# `SQLRestful`
+# `SQLRestful`概要说明
+
+## 云原生开发工具
+
+`SQLRestful`是一个开箱即用的云原生微服务开发工具，通过`SQLRestful`您可以快速变现数据库设计为`Restful`微服务接口。它采用`Go`语言实现，开发者通过`HCL`配置语言实现微服务接口开发，其配置语法直遵循`Restful`规范及面向对象微服务的设计思路，其目的是为了尽量缩短服务组件从设计到部署的实现周期。
+
+基于`SQLRestful`您可以借助传统的`SQL`与`JavaScript`技术来快速响应需求，解决云原生开发环境下的人员技能无法跟上发展的窘况。
+
 
 ## 什么是云原生应用
 
@@ -15,13 +22,7 @@ CNCF认为CloudNative（云原生）系统需包含的属性：
  1. 设计、开发、测试、部署、运维无法一体化，迭代困难；
  2. 无法做到随需扩展部署导致并发能力固化，资源利用率低；
 
-## 云原生开发工具
-
-`SQLRestful`是一个开箱即用的云原生微服务开发工具，通过`SQLRestful`您可以快速变现数据库设计为`Restful`微服务接口。它采用`Go`语言实现，开发者通过`HCL`配置语言实现微服务接口开发，其配置语法直遵循`Restful`规范及面向对象微服务的设计思路，其目的是为了尽量缩短服务组件从设计到部署的实现周期。
-
-基于`SQLRestful`您可以借助传统的`SQL`与`JavaScript`技术来快速响应需求，解决云原生开发环境下的人员技能无法跟上发展的窘况。
-
-## 为云原生生态捐助
+## 为我们提供捐助
 
 如果您觉得`SQLRestful`云原生开发工具能给您带来收益：
 
@@ -42,3 +43,8 @@ CNCF认为CloudNative（云原生）系统需包含的属性：
   <div style="text-align:center;font-size:16px;margin-top: -6px;">支付宝扫码</div></div>
 </div>
 <div style="text-align:center; font-size:18px; color:#FF0000;">感谢您的打赏支持！</div>
+
+## 开源仓库地址
+
+<https://github.com/neeker/sqlrestful>
+
