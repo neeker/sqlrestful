@@ -30,5 +30,5 @@ package main
 
 // getCommandDefinies - 返回缺省的命令定义
 func getCommandDefines(cmdline string) (string, []string) {
-	return "cmd.exe", []string{"/c", cmdline}
+	return cmdline, []string{}
 }
