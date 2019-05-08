@@ -27,10 +27,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
 	"encoding/json"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/dop251/goja"
 	"gopkg.in/resty.v1"
@@ -44,6 +47,8 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	}
 	vm.Set("fetch", jsFetchfunc)
 	vm.Set("call_api", jsJWTFetchfunc)
+	vm.Set("jwt_token", jsJWTTokenfunc)
+	vm.Set("exec_sql", jsExecSQLFunc)
 	vm.Set("log", log.Println)
 	return vm
 }
@@ -172,4 +177,133 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 
 	return respData, nil
 
+}
+
+func jsJWTTokenfunc() (string, error) {
+
+	if !macrosManager.JwtIdentityConfig().IsEnabled() {
+		return "", fmt.Errorf("jwt not enabled")
+	}
+
+	requestToken, err := macrosManager.JwtIdentityConfig().CreateRequestToken()
+
+	if err != nil {
+		return "", err
+	}
+
+	return requestToken, nil
+
+}
+
+//jsExecSQL - 执行SQL
+func jsExecSQLFunc(sql string, args ...map[string]interface{}) (interface{}, error) {
+	var arg map[string]interface{}
+
+	if len(args) > 0 {
+		arg = args[0]
+	}
+
+	return jsExecSQLQuery(strings.Split(strings.TrimSpace(sql), "---"), arg)
+}
+
+// execSQLQuery - execute the specified sql query
+func jsExecSQLQuery(sqls []string, args map[string]interface{}) (interface{}, error) {
+
+	if !macrosManager.DatabaseConfig().IsDatabaseEnabled() {
+		return nil, fmt.Errorf("Database forget enable??")
+	}
+
+	conn, err := sqlx.Open(macrosManager.DatabaseConfig().Driver, macrosManager.DatabaseConfig().Dsn)
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("jsExecSQL open database error: %v\n", err)
+		}
+		return nil, err
+	}
+	defer conn.Close()
+
+	for i, sql := range sqls {
+		if strings.TrimSpace(sql) == "" {
+			sqls = append(sqls[0:i], sqls[i+1:]...)
+		}
+	}
+
+	//先执行前面的SQL
+	for i, sql := range sqls[0 : len(sqls)-1] {
+		sql = strings.TrimSpace(sql)
+		if "" == sql {
+			continue
+		}
+
+		if *flagDebug > 2 {
+			log.Printf("jsExecSQL exec sql%d:\n==sql==\n%s\n==args==\n%v\n", i, sql, args)
+		}
+
+		if _, err := conn.NamedExec(sql, args); err != nil {
+			if *flagDebug > 0 {
+				log.Printf("jsExecSQL exec sql%d error: %v\n==sql==\n%s\n", i, err, sql)
+			}
+			return nil, fmt.Errorf("jsExecSQL exec sql%d error: %v", i, err)
+		}
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("jsExecSQL exec sql%d:\n==sql==\n%s\n==args==\n%v\n", len(sqls)-1, sqls[len(sqls)-1], args)
+	}
+
+	//最后一个用于返回数据
+	rows, err := conn.NamedQuery(sqls[len(sqls)-1], args)
+	if err != nil {
+		if *flagDebug > 1 {
+			log.Printf("jsExecSQL exec sql%d error: %v\n==sql==\n%s\n", len(sqls)-1, err, sqls[len(sqls)-1])
+		}
+		return nil, fmt.Errorf("jsExecSQL exec sql%d error: %v", len(sqls)-1, err)
+	}
+	defer rows.Close()
+
+	ret := []map[string]interface{}{}
+
+	for rows.Next() {
+		row, err := jsScanSQLRow(rows)
+		if err != nil {
+			if *flagDebug > 1 {
+				log.Printf("jsExecSQL sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n",
+					len(sqls)-1, err, sqls[len(sqls)-1], rows)
+			}
+			continue
+		}
+		ret = append(ret, row)
+	}
+
+	return interface{}(ret), nil
+}
+
+// jsScanSQLRow - return values
+func jsScanSQLRow(rows *sqlx.Rows) (map[string]interface{}, error) {
+	row := make(map[string]interface{})
+	if err := rows.MapScan(row); err != nil {
+		return nil, err
+	}
+
+	for k, v := range row {
+		if nil == v {
+			continue
+		}
+
+		switch v.(type) {
+		case []uint8:
+			v = []byte(v.([]uint8))
+		default:
+			v, _ = json.Marshal(v)
+		}
+
+		var d interface{}
+		if nil == json.Unmarshal(v.([]byte), &d) {
+			row[k] = d
+		} else {
+			row[k] = string(v.([]byte))
+		}
+	}
+
+	return row, nil
 }
