@@ -1,8 +1,8 @@
-# `SQLRestful`的`JS`脚本能力
+# 使用`JavaScript`脚本
 
-## `js`脚本用途
+## `javascript`脚本定位
 
-在SQLRestful的主要实现由SQL与JavaScript完成，其中JavaScript负责完成下述工作：
+`SQLRestful`定位就是采用`SQL`与`JavaScript`完成微服务开发，其中`JavaScript`脚本用于完成下述工作：
 
   - 与其他微服务接口进行交互；
   - 实现请求身份验证功能；
@@ -13,13 +13,13 @@
 
 它支持完整的`ECMAScript 5.1`规范（由 [goja](https://github.com/dop251/goja) 提供实现支持）。
 
-## `js`脚本的默认变量
+## `javascript`脚本默认变量
 
-在SQLRestful的宏定义中，参数转换（`bind`宏），身份验证实现（`authorizer`宏）的`JS`脚本可以通过`$input`变量
+在`SQLRestful`中，参数转换（`bind`宏），身份验证实现（`authorizer`宏）的`JS`脚本可以通过`$input`变量
 获取到请求输入参数列表，同时可以通过`$input.http_xxxx`来获取请求头内容，假设客户端请求发送一个名称为`X-Test-MM`
 的请求，则通过以下表达式拿到请求头内容：
 
-```
+```js
 $input.http_x_test_mm
 ```
 
@@ -27,7 +27,7 @@ $input.http_x_test_mm
 
 应答转换（`transformer`宏）的脚本通过变量`$result`可以获取到`exec`宏返回的原始数据，具体见如下示例代码：
 
-```
+```hcl
 test {
 
   ...
@@ -57,10 +57,10 @@ test {
 | `$input.http_remote_addr` | 当前请求远程IP地址（或前置代理地址） |
 | `$input.http_real_ip` | 当前请求真实IP地址：<br>请求头`X-Forwarded-For`或`X-Real-IP`的值 |
 | $name | 当前微服务实现宏名称 |
-| $stage | 宏`JS`所在过程名称：validators、authorizer、<br>transformer、bind、provider、exec、total |
+| $stage | 宏`JS`所在过程名称：validators、authorizer、const、<br>transformer、bind、provider、exec、total |
 
 
-## `js`脚本内置函数
+## `javascript`脚本内置函数
 
 
 `SQLRestful`为`JS`脚本内置了两个默认的`HTTP`请求函数和一个控制台日志输出函数：
@@ -68,6 +68,8 @@ test {
   - `fetch`
   - `call_api`
   - `log`
+  - `exec_sql`
+  - `exec_cmd`
 
 ### `fetch`函数
 
@@ -106,7 +108,7 @@ function fetch(URL, {
 
 **函数原型**
 
-```
+```js
 function call_api(URL, {
   method: "HTTP METHOD", //请求方法，如GET、POST、PUT
   headers: { //请求头
@@ -121,7 +123,7 @@ function call_api(URL, {
 正常情况下 call_api 函数直接返回接口的JSON对象，只有在请求出错的情况下返回如下定义：
 
 
-```
+```json
 {
   "status":     "应答状态文本",
   "statusCode": "HTTP应答码",
@@ -137,7 +139,7 @@ function call_api(URL, {
 
 **函数原型**
 
-```
+```js
 function log(message, ...)
 ```
 
@@ -146,5 +148,39 @@ function log(message, ...)
 ```js
 (function(){
   log("debug:", "hello world!")
+})()
+```
+
+### `exec_sql`函数
+
+执行`SQL`查询语句并返回查询结果
+
+```js
+function exec_sql(cmdline, args{})
+```
+
+
+**使用示例**
+
+```js
+(function(){
+  var ret = exec_sql("select * from where id = :id", {
+    id: 10000
+  })
+  return ret === undefined ? undefined : ret[0]
+})()
+```
+
+### `exec_cmd`函数
+
+//TODO：待实现
+
+用于执行命令并返回结果
+
+**使用示例**
+
+```js
+(function(){
+  var dirout = exec("ls", "-l", "/")
 })()
 ```

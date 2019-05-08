@@ -50,7 +50,7 @@ root {
 
   desc = "跳转至接口文档"
 
-  tags = [ "1.测试接口" ]
+  tags = [ "1.SQL测试接口" ]
 
   get {
     impl = "js"
@@ -68,7 +68,7 @@ root {
 //数据集接口
 dataxs {
 
-  tags = [ "1.测试接口" ]
+  tags = [ "1.SQL测试接口" ]
 
   path = "/dataxs"
 
@@ -154,7 +154,7 @@ dataxs {
 //数据实例接口
 datax {
 
-  tags = [ "1.测试接口" ]
+  tags = [ "1.SQL测试接口" ]
 
   path = "/dataxs/:id"
 
@@ -255,5 +255,36 @@ datax {
 
   }
 
+
+}
+
+jssqltest {
+
+  tags = [ "2.JS测试接口" ]
+
+  //执行前引入
+  include = [ "_create_db" ]
+
+  desc = "执行JS脚本"
+
+  path = "/jssqltest"
+
+  impl = "js"
+
+  //这里的定义主要是为了生成SwaggerUI参数
+  bind = {
+    id = "数据ID"
+  }
+
+  exec = <<JS
+
+  (function(){
+    var ret = exec_sql("SELECT * FROM datax WHERE id = :id", {
+      "id": $input.id
+    })
+    return ret === undefined ? undefined : ret[0]
+  })()
+
+  JS
 
 }

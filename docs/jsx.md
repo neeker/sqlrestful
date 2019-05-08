@@ -32,4 +32,4 @@
   JS
 ```
 
-> 此处的`JavaScript`可以使用《[`SQLRestful`的`JS`脚本能力](js.md)》章节中说明的内置函数。
+> 此处的`JavaScript`可以使用《[使用`JavaScript`脚本](js.md)》章节中说明的内置函数。
