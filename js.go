@@ -203,7 +203,17 @@ func jsExecSQLFunc(sql string, args ...map[string]interface{}) (interface{}, err
 		arg = args[0]
 	}
 
-	return jsExecSQLQuery(strings.Split(strings.TrimSpace(sql), "---"), arg)
+	ret, err := jsExecSQLQuery(strings.Split(strings.TrimSpace(sql), "---"), arg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if *flagDebug > 2 {
+		log.Printf("jsExecSQL return %v\n", ret)
+	}
+
+	return ret, nil
 }
 
 // execSQLQuery - execute the specified sql query
