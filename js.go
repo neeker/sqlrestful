@@ -27,11 +27,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
 	"strings"
-
-	"encoding/json"
 
 	"github.com/jmoiron/sqlx"
 
@@ -49,6 +50,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("call_api", jsJWTFetchfunc)
 	vm.Set("jwt_token", jsJWTTokenfunc)
 	vm.Set("exec_sql", jsExecSQLFunc)
+	vm.Set("exec_cmd", jsExecCommandFunc)
 	vm.Set("log", log.Println)
 	return vm
 }
@@ -316,4 +318,38 @@ func jsScanSQLRow(rows *sqlx.Rows) (map[string]interface{}, error) {
 	}
 
 	return row, nil
+}
+
+// jsExecCommandFunc - js execute the command line
+func jsExecCommandFunc(cmdline string, args ...string) (interface{}, error) {
+
+	cmdExecute, inputArgs := getCommandDefines(cmdline)
+
+	for _, v := range args {
+		inputArgs = append(inputArgs, v)
+	}
+
+	cmd := exec.Command(cmdExecute, inputArgs[0:]...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("jsExecCommand error: %v\n==cmd==\n%s", err, cmdline)
+		}
+		return nil, err
+	}
+
+	outStr := out.String()
+	var outData interface{}
+	err = json.Unmarshal([]byte(outStr), &outData)
+
+	if err != nil {
+		return outStr, nil
+	}
+
+	return outData, nil
+
 }
