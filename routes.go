@@ -405,7 +405,7 @@ func routeAPIDocs(c echo.Context) error {
 			"contact": map[string]interface{}{
 				"name":  macrosManager.ServiceAuthor().Name,
 				"email": macrosManager.ServiceAuthor().Email,
-				"url":   macrosManager.ServiceAuthor().Url,
+				"url":   macrosManager.ServiceAuthor().URL,
 			},
 		},
 		"host":     "",

@@ -465,6 +465,17 @@ func NewManager(configpath string) (*Manager, error) {
 		}
 	}
 
+	if meta.Mq == nil {
+		meta.Mq = new(MessageQueueConfig)
+	}
+
+	if meta.Mq.IsMessageQueueEnabled() {
+		err := meta.Mq.InitMessageQueueProvider()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for _, macro := range manager.macros {
 		if len(meta.consts) > 0 {
 			if len(macro.consts) > 0 {
@@ -494,6 +505,17 @@ func NewManager(configpath string) (*Manager, error) {
 					childm.consts = mapValue
 				} else {
 					childm.consts = macro.consts
+				}
+			}
+		}
+	}
+
+	if meta.Mq.IsMessageQueueEnabled() {
+		for _, n := range manager.Names() {
+			m := manager.Get(n)
+			if m.IsMessageConsumeEnabled() {
+				if err := manager.ConsumeMessage(m); err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -593,4 +615,14 @@ func (m *Manager) DatabaseConfig() *DatabaseConfig {
 //ServiceBrand - return service brand
 func (m *Manager) ServiceBrand() string {
 	return m.meta.Brand
+}
+
+//MessageQueueConfig - 获取消息队列配置
+func (m *Manager) MessageQueueConfig() *MessageQueueConfig {
+	return m.meta.Mq
+}
+
+//ConsumeMessage - 处理消息
+func (m *Manager) ConsumeMessage(macro *Macro) error {
+	return m.meta.Mq.ConsumeMessage(macro)
 }

@@ -50,7 +50,7 @@ type Cache struct {
 type Author struct {
 	Name  string //名称
 	Email string //邮件
-	Url   string //URL
+	URL   string //URL
 }
 
 // Macro - a macro configuration
@@ -70,6 +70,8 @@ type Macro struct {
 	Authorizer   string                       //身份校验
 	Security     *SecurityConfig              //安全验证配置
 	Jwt          *JwtConfig                   //JWT身份配置
+	Mq           *MessageQueueConfig          //消息队列配置
+	Consume      map[string]string            //消费消息配置
 	Db           *DatabaseConfig              //数据库配置
 	Bind         map[string]string            //绑定表达式
 	Impl         string                       //实现语言：js、sql、cmd
@@ -98,6 +100,12 @@ type Macro struct {
 	manager      *Manager                     //管理器
 	methodMacros map[string]*Macro            //内置的方法宏
 	consts       map[string]interface{}       //常量表
+}
+
+// Consume - message exec macro
+func (m *Macro) Consume(input map[string]interface{}) error {
+	_, err := m.Call(input, nil)
+	return err
 }
 
 // Call - executes the macro
@@ -752,18 +760,15 @@ func (m *Macro) buildConst() (map[string]interface{}, error) {
 			log.Printf("run %s const(%s): %s\n", m.name, k, src)
 		}
 
-		if strings.ContainsAny(src, "$'\"") || strings.Contains(src, "()") || strings.Contains(src, "return") {
-			val, err := vm.RunString(src)
-			if err != nil {
-				if *flagDebug > 0 {
-					log.Printf("run %s const(%s=\"%s\") error: %v\n", m.name, k, src, err)
-				}
-				return nil, fmt.Errorf("run %s const(%s=\"%s\") error: %v", m.name, k, src, err)
+		val, err := vm.RunString(src)
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("run %s const(%s=\"%s\") error: %v\n", m.name, k, src, err)
 			}
-			ret[k] = val.Export()
-		} else {
-			ret[k] = src
+			return nil, fmt.Errorf("run %s const(%s=\"%s\") error: %v", m.name, k, src, err)
 		}
+		ret[k] = val.Export()
+
 	}
 
 	return ret, nil
@@ -1099,4 +1104,11 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// IsMessageConsumeEnabled - 是否启用了消费消息
+func (m *Macro) IsMessageConsumeEnabled() bool {
+	return m.Consume != nil && (m.Consume["name"] != "" ||
+		m.Consume["topic"] != "" ||
+		m.Consume["queue"] != "")
 }

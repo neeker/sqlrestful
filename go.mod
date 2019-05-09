@@ -13,6 +13,7 @@ require (
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-stomp/stomp v2.0.2+incompatible
 	github.com/hashicorp/hcl v1.0.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kshvakov/clickhouse v1.3.5
@@ -23,6 +24,7 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-oci8 v0.0.0-20190410054007-e00f23025626
 	github.com/mattn/go-sqlite3 v1.10.0
+	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/tidwall/redcon v0.9.0
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

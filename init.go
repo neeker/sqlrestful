@@ -46,7 +46,7 @@ import (
 
 func init() {
 
-	supportDatabases = []string {
+	supportDatabases = []string{
 		"postgres(PostgresQL)",
 		"mysql(MySQL)",
 		"mssql(SQLServer)",
@@ -112,4 +112,5 @@ func init() {
 		}
 		macrosManager = manager
 	}
+
 }
