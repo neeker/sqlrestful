@@ -5,7 +5,7 @@ _meta {
 
   const {
 
-    var1 = "test"
+    var1 = "1"
 
   }
 

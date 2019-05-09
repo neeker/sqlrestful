@@ -34,19 +34,20 @@ import (
 
 // MessageQueueConfig - 消息队列
 type MessageQueueConfig struct {
-	Driver  string               //驱动，如amqp
-	URI     string               //连接地址
-	Tag     string               //标签
-	Timeout int                  // 超时
-	mqp     MessageQueueProvider //提供器实现
+	Driver  string //驱动，如amqp
+	URI     string //连接地址
+	Tag     string //标签
+	Timeout int    // 超时
 }
 
 // MessageQueueProvider - 消息实现提供器
 type MessageQueueProvider interface {
 	//消费
-	Consume(*Macro) error
+	Consume() error
 	//停止
 	Shutdown() error
+	//是否停止
+	IsShutdown() bool
 }
 
 // IsMessageQueueEnabled - 判断是否启用了消息队列
@@ -54,16 +55,8 @@ func (c *MessageQueueConfig) IsMessageQueueEnabled() bool {
 	return c.Driver != "" && c.URI != ""
 }
 
-// ConsumeMessage - 消费消息
-func (c *MessageQueueConfig) ConsumeMessage(m *Macro) error {
-	if !c.IsMessageQueueEnabled() {
-		return fmt.Errorf("message queue disabled")
-	}
-	return c.mqp.Consume(m)
-}
-
-// InitMessageQueueProvider - 初始化消息队列提供器
-func (c *MessageQueueConfig) InitMessageQueueProvider() (err error) {
+// NewMessageQueueProvider - 初始化消息队列提供器
+func (c *MessageQueueConfig) NewMessageQueueProvider(m *Macro) (err error) {
 
 	if !c.IsMessageQueueEnabled() {
 		return fmt.Errorf("message queue is disabled")
@@ -71,9 +64,9 @@ func (c *MessageQueueConfig) InitMessageQueueProvider() (err error) {
 
 	switch {
 	case strings.ToLower(c.Driver) == "amqp":
-		c.mqp, err = NewAMQP(c)
+		m.mqp, err = NewAMQP(m, c)
 	case strings.ToLower(c.Driver) == "stomp":
-		c.mqp, err = NewSTOMP(c)
+		m.mqp, err = NewSTOMP(m, c)
 	default:
 		return fmt.Errorf("not found message queue driver(%s)", c.Driver)
 	}
@@ -86,4 +79,31 @@ func (c *MessageQueueConfig) InitMessageQueueProvider() (err error) {
 	}
 
 	return nil
+}
+
+func startMacrosConsumeMessage() error {
+	if macrosManager.IsMessageQueueEnabled() {
+		for _, n := range macrosManager.Names() {
+			m := macrosManager.Get(n)
+			if m.IsMessageConsumeEnabled() {
+				if err := m.ConsumeMessage(); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func stopMacrosConsumeMessage() {
+	if macrosManager.IsMessageQueueEnabled() {
+		for _, n := range macrosManager.Names() {
+			m := macrosManager.Get(n)
+			if m.IsMessageConsumeEnabled() {
+				if err := m.ShutdownConsume(); err != nil {
+					log.Printf("shutdown %s consume error: %+v", m.name, err)
+				}
+			}
+		}
+	}
 }

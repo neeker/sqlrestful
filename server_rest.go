@@ -33,8 +33,13 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-// initialize RESTful server
-func initRestfulServer() error {
+// startRestfulServer - stop RESTful server
+func stopRestfulServer() {
+	echoServer.Close()
+}
+
+// startRestfulServer - start RESTful server
+func startRestfulServer() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true

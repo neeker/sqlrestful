@@ -29,6 +29,8 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 )
@@ -84,7 +86,7 @@ func main() {
 	}
 
 	if macrosManager.SecurityConfig().IsEnabled() {
-		fmt.Printf("  UUM Security: %s\n", macrosManager.SecurityConfig().Api)
+		fmt.Printf("  UUM Security: %s\n", macrosManager.SecurityConfig().API)
 	} else {
 		fmt.Printf("  UUM Security: <Disabled>\n")
 	}
@@ -109,10 +111,27 @@ func main() {
 	err := make(chan error)
 
 	go (func() {
-		err <- initRestfulServer()
+		err <- startRestfulServer()
 	})()
 
-	if err := <-err; err != nil {
-		fmt.Printf("%s", err.Error())
+	go (func() {
+		if err := startMacrosConsumeMessage(); err != nil {
+			fmt.Printf("start consumer message error: %s", err.Error())
+			stopRestfulServer()
+		}
+	})()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Kill, os.Interrupt)
+	go func() {
+		<-c
+		stopMacrosConsumeMessage()
+		stopRestfulServer()
+	}()
+
+	rerr := <-err
+	if rerr != nil {
+		fmt.Printf("%s", rerr.Error())
 	}
+
 }

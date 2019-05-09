@@ -28,7 +28,7 @@ package main
 
 // SecurityConfig - 配置
 type SecurityConfig struct {
-	Api       string   //统一安全服务API地址
+	API       string   //统一安全服务API地址
 	From      string   //用户标识来自请求头名称
 	Idtype    string   //用户标识类型
 	Anonymous bool     //是否允许匿名
@@ -40,5 +40,5 @@ type SecurityConfig struct {
 
 // IsEnabled - return is enable security config
 func (c *SecurityConfig) IsEnabled() bool {
-	return c.Api != ""
+	return c.API != ""
 }

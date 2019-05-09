@@ -100,12 +100,7 @@ type Macro struct {
 	manager      *Manager                     //管理器
 	methodMacros map[string]*Macro            //内置的方法宏
 	consts       map[string]interface{}       //常量表
-}
-
-// Consume - message exec macro
-func (m *Macro) Consume(input map[string]interface{}) error {
-	_, err := m.Call(input, nil)
-	return err
+	mqp          MessageQueueProvider         //提供器实现
 }
 
 // Call - executes the macro
@@ -511,7 +506,7 @@ func (m *Macro) execSQLQuery(sqls []string, input map[string]interface{}) (inter
 		row, err := m.scanSQLRow(rows)
 		if err != nil {
 			if *flagDebug > 1 {
-				log.Printf("%s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n",
+				log.Printf("%s exec sql%d fetch rows error:\n%v\n==sql==\n%s\n==rows==\n%v\n\n",
 					m.name, len(sqls)-1, err, sqls[len(sqls)-1], rows)
 			}
 			continue
@@ -532,7 +527,7 @@ func (m *Macro) resolveExecScript(javascript string, input map[string]interface{
 	})
 
 	if *flagDebug > 2 {
-		log.Printf("run %s provider(js):\n==js==\n%s\n", m.name, javascript)
+		log.Printf("run %s provider(js):\n==js==\n%s\n\n", m.name, javascript)
 	}
 
 	val, err := vm.RunString(javascript)
@@ -557,7 +552,7 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 	})
 
 	if *flagDebug > 2 {
-		log.Printf("run %s total js:\n==js==\n%s\n==input==\n%v\n", m.name, javascript, input)
+		log.Printf("run %s exec js:\n==js==\n%s\n==input==\n%v\n\n", m.name, javascript, input)
 	}
 
 	val, err := vm.RunString(javascript)
@@ -1014,7 +1009,7 @@ func (m *Macro) filterSecurity(input map[string]interface{}) (bool, error) {
 
 	//帐号获取接口地址
 	accAPIURL := fmt.Sprintf("%s/get_user_account?userid=%s&idtype=%s%s&contain_roles=true&timestamp=%d",
-		m.manager.meta.Security.Api, userid, idtype, scopeValue, time.Now().UnixNano())
+		m.manager.meta.Security.API, userid, idtype, scopeValue, time.Now().UnixNano())
 
 	out, err := jsJWTFetchfunc(accAPIURL, options)
 
@@ -1111,4 +1106,14 @@ func (m *Macro) IsMessageConsumeEnabled() bool {
 	return m.Consume != nil && (m.Consume["name"] != "" ||
 		m.Consume["topic"] != "" ||
 		m.Consume["queue"] != "")
+}
+
+// ConsumeMessage - 消费消息
+func (m *Macro) ConsumeMessage() error {
+	return m.mqp.Consume()
+}
+
+// ShutdownConsume - 停止消费
+func (m *Macro) ShutdownConsume() error {
+	return m.mqp.Shutdown()
 }

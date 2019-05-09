@@ -30,55 +30,73 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/streadway/amqp"
 )
 
 // AMQPMessageQueueProvider - amqp
 type AMQPMessageQueueProvider struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	tag     string
+	conn     *amqp.Connection
+	channel  *amqp.Channel
+	tag      string
+	macro    *Macro
+	uri      string
+	shutdown bool
+	clock    *sync.RWMutex
 }
 
 // NewAMQP - 创建AMQP1.1x协议的Provider
-func NewAMQP(config *MessageQueueConfig) (MessageQueueProvider, error) {
-	var err error
+func NewAMQP(m *Macro, config *MessageQueueConfig) (MessageQueueProvider, error) {
 
 	p := &AMQPMessageQueueProvider{
-		conn:    nil,
-		channel: nil,
+		conn:     nil,
+		channel:  nil,
+		macro:    m,
+		uri:      config.URI,
+		tag:      config.Tag,
+		shutdown: false,
+		clock:    &sync.RWMutex{},
 	}
 
-	p.conn, err = amqp.Dial(config.URI)
-
-	if err != nil {
-		if *flagDebug > 0 {
-			log.Printf("AMQP provider error: %v", err)
-		}
-		return nil, err
-	}
-
-	go func() {
-		log.Printf("AMQP provider closing: %v", <-p.conn.NotifyClose(make(chan *amqp.Error)))
-	}()
-
-	p.channel, err = p.conn.Channel()
-	if err != nil {
-		return nil, fmt.Errorf("AMQP channel error: %v", err)
-	}
 	p.tag = config.Tag
 
 	return p, nil
 }
 
-// Consume - 消费数据
-func (c *AMQPMessageQueueProvider) Consume(m *Macro) error {
-	if c.conn == nil {
-		return fmt.Errorf("AMQP not connect")
+// IsShutdown - 是否已停止
+func (c *AMQPMessageQueueProvider) IsShutdown() bool {
+	c.clock.RLock()
+	defer c.clock.RUnlock()
+	return c.shutdown
+}
+
+// connect - 连接到AMQP
+func (c *AMQPMessageQueueProvider) connect() (err error) {
+	c.conn, err = amqp.Dial(c.uri)
+
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("AMQP provider error: %v", err)
+		}
+		return err
 	}
 
-	args := m.Consume
+	c.channel, err = c.conn.Channel()
+	if err != nil {
+		return fmt.Errorf("AMQP channel error: %v", err)
+	}
+	return nil
+}
+
+// Consume - 消费数据
+func (c *AMQPMessageQueueProvider) Consume() error {
+
+	if err := c.connect(); err != nil {
+		return err
+	}
+
+	args := c.macro.Consume
 
 	exchangeName := args["name"]
 	queueName := args["queue"]
@@ -150,7 +168,7 @@ func (c *AMQPMessageQueueProvider) Consume(m *Macro) error {
 		nil,        // arguments
 	)
 
-	go amqpHandleMessage(deliveries, m)
+	go amqpHandleMessage(deliveries, c.macro)
 
 	return nil
 }

@@ -265,7 +265,7 @@ jssqltest {
   //执行前引入
   include = [ "_create_db" ]
 
-  desc = "执行JS脚本"
+  desc = "JS执行SQL查询"
 
   path = "/jssqltest"
 
@@ -283,6 +283,27 @@ jssqltest {
       "id": $input.id
     })
     return ret === undefined ? undefined : ret[0]
+  })()
+
+  JS
+
+}
+
+
+jscmdtest {
+
+  tags = [ "2.JS测试接口" ]
+
+  desc = "JS执行命令"
+
+  path = "/jscmdtest"
+
+  impl = "js"
+
+  exec = <<JS
+
+  (function(){
+    return exec_cmd("ls", "-l", "/")
   })()
 
   JS

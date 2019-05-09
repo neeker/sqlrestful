@@ -430,8 +430,8 @@ func NewManager(configpath string) (*Manager, error) {
 		meta.Security = new(SecurityConfig)
 	}
 
-	if meta.Security.Api == "" {
-		meta.Security.Api = *flagUserAPI
+	if meta.Security.API == "" {
+		meta.Security.API = *flagUserAPI
 	}
 
 	if meta.Security.Scope == "" {
@@ -467,13 +467,6 @@ func NewManager(configpath string) (*Manager, error) {
 
 	if meta.Mq == nil {
 		meta.Mq = new(MessageQueueConfig)
-	}
-
-	if meta.Mq.IsMessageQueueEnabled() {
-		err := meta.Mq.InitMessageQueueProvider()
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	for _, macro := range manager.macros {
@@ -514,7 +507,7 @@ func NewManager(configpath string) (*Manager, error) {
 		for _, n := range manager.Names() {
 			m := manager.Get(n)
 			if m.IsMessageConsumeEnabled() {
-				if err := manager.ConsumeMessage(m); err != nil {
+				if err := meta.Mq.NewMessageQueueProvider(m); err != nil {
 					return nil, err
 				}
 			}
@@ -622,7 +615,7 @@ func (m *Manager) MessageQueueConfig() *MessageQueueConfig {
 	return m.meta.Mq
 }
 
-//ConsumeMessage - 处理消息
-func (m *Manager) ConsumeMessage(macro *Macro) error {
-	return m.meta.Mq.ConsumeMessage(macro)
+//IsMessageQueueEnabled - 是否启用了消息队列管理
+func (m *Manager) IsMessageQueueEnabled() bool {
+	return m.MessageQueueConfig().IsMessageQueueEnabled()
 }
