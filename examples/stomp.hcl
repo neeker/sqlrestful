@@ -12,7 +12,8 @@ _meta {
 _consumer {
 
   consume {
-    name = "app.sqlrestful.test.stomp"
+    // topicq前必须加/topic/，如：/topic/app.foo.bar
+    name = "app.foo.bar"
   }
 
   impl = "js"

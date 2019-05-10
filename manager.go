@@ -469,6 +469,14 @@ func NewManager(configpath string) (*Manager, error) {
 		meta.Mq = new(MessageQueueConfig)
 	}
 
+	if meta.Mq.Driver == "" {
+		meta.Mq.Driver = *flagMQDriver
+	}
+
+	if meta.Mq.URL == "" {
+		meta.Mq.URL = *flagMQURL
+	}
+
 	for _, macro := range manager.macros {
 		if len(meta.consts) > 0 {
 			if len(macro.consts) > 0 {

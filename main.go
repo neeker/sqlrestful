@@ -116,7 +116,7 @@ func main() {
 
 	go (func() {
 		if err := startMacrosConsumeMessage(); err != nil {
-			fmt.Printf("start consumer message error: %s", err.Error())
+			fmt.Printf("start consume message error: %s\n", err.Error())
 			stopRestfulServer()
 		}
 	})()
@@ -131,7 +131,7 @@ func main() {
 
 	rerr := <-err
 	if rerr != nil {
-		fmt.Printf("%s", rerr.Error())
+		fmt.Printf("%s\n", rerr.Error())
 	}
 
 }

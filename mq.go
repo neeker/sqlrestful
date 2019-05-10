@@ -35,7 +35,7 @@ import (
 // MessageQueueConfig - 消息队列
 type MessageQueueConfig struct {
 	Driver  string //驱动，如amqp
-	URI     string //连接地址
+	URL     string //连接地址
 	Tag     string //标签
 	Timeout int    // 超时
 }
@@ -48,11 +48,15 @@ type MessageQueueProvider interface {
 	Shutdown() error
 	//是否停止
 	IsShutdown() bool
+	//消息队列
+	QueueName() string
+	//消息l类型
+	DestType() string
 }
 
 // IsMessageQueueEnabled - 判断是否启用了消息队列
 func (c *MessageQueueConfig) IsMessageQueueEnabled() bool {
-	return c.Driver != "" && c.URI != ""
+	return c.Driver != "" && c.URL != ""
 }
 
 // NewMessageQueueProvider - 初始化消息队列提供器

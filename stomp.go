@@ -54,7 +54,7 @@ var stompConn *stomp.Conn
 
 // NewSTOMP - 创建STOMP协议提供器
 func NewSTOMP(macro *Macro, config *MessageQueueConfig) (MessageQueueProvider, error) {
-	u, err := url.Parse(config.URI)
+	u, err := url.Parse(config.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -86,29 +86,6 @@ func (c *STOMPMessageQueueProvider) IsShutdown() bool {
 	return c.shutdown
 }
 
-func (c *STOMPMessageQueueProvider) connect() (err error) {
-	if c.conn != nil {
-		if err := c.conn.Disconnect(); err != nil {
-			log.Printf("%s mq(%s) dis connect error: %+v", c.macro.name, c.uri.String(), err)
-		}
-	}
-
-	u := c.uri
-	connTimeout := c.timeout
-	userPassword, _ := u.User.Password()
-
-	c.conn, err = stomp.Dial(u.Scheme, u.Host,
-		stomp.ConnOpt.Login(u.User.Username(), userPassword),
-		stomp.ConnOpt.HeartBeat(time.Duration(connTimeout)*time.Second, time.Duration(connTimeout)*time.Second),
-		stomp.ConnOpt.HeartBeatError(time.Duration(connTimeout*3)*time.Second))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // QueueName - 获取队列名称
 func (c *STOMPMessageQueueProvider) QueueName() string {
 	args := c.macro.Consume
@@ -122,6 +99,41 @@ func (c *STOMPMessageQueueProvider) QueueName() string {
 	return queueName
 }
 
+// DestType - 目标类型
+func (c *STOMPMessageQueueProvider) DestType() string {
+	destType := "queue"
+	if strings.HasPrefix(c.QueueName(), "/topic/") {
+		destType = "topic"
+	}
+	return destType
+}
+
+func (c *STOMPMessageQueueProvider) connect() (err error) {
+	if c.conn != nil {
+		if err := c.conn.Disconnect(); err != nil {
+			log.Printf("%s consume %s(%s) close existed connect error: %+v", c.macro.name, c.DestType(), c.QueueName(), err)
+		}
+	}
+
+	u := c.uri
+	connTimeout := c.timeout
+	userPassword, _ := u.User.Password()
+
+	c.conn, err = stomp.Dial(u.Scheme, u.Host,
+		stomp.ConnOpt.Login(u.User.Username(), userPassword),
+		stomp.ConnOpt.HeartBeat(time.Duration(connTimeout)*time.Second, time.Duration(connTimeout)*time.Second),
+		stomp.ConnOpt.HeartBeatError(time.Duration(connTimeout*3)*time.Second))
+
+	if err != nil {
+		if *flagDebug > 0 {
+			log.Printf("%s consume %s(%s) open connect error: %+v", c.macro.name, c.DestType(), c.QueueName(), err)
+		}
+		return err
+	}
+
+	return nil
+}
+
 // Consume - 消费数据
 func (c *STOMPMessageQueueProvider) Consume() error {
 
@@ -130,8 +142,10 @@ func (c *STOMPMessageQueueProvider) Consume() error {
 	}
 
 	queueName := c.QueueName()
+	queueType := c.DestType()
+
 	if queueName == "" {
-		return fmt.Errorf("consume args must be set queue or topic or name")
+		return fmt.Errorf("%s consume args must be set queue or topic", c.macro.name)
 	}
 
 	c.tries++
@@ -142,10 +156,10 @@ func (c *STOMPMessageQueueProvider) Consume() error {
 		}
 
 		if c.failover {
-			log.Printf("%s mq(%s) consume %s connect error: %+v", c.macro.name, c.uri.String(), queueName, err)
+			log.Printf("%s consume %s(%s) connect error: %+v", c.macro.name, queueType, queueName, err)
 			go func() {
 				if *flagDebug > 0 {
-					log.Printf("wait 500 ms retry %s mq(%s) consume %s connect", c.macro.name, c.uri.String(), queueName)
+					log.Printf("%s wait 500 ms retry consume %s(%s) connect", c.macro.name, queueType, queueName)
 				}
 				time.Sleep(500 * time.Millisecond)
 				c.Consume()
@@ -170,18 +184,24 @@ func (c *STOMPMessageQueueProvider) Consume() error {
 
 	if err != nil {
 		if c.failover {
-			log.Printf("%s mq(%s) consume %s error: %+v", c.macro.name, c.uri.String(), queueName, err)
-			go c.Consume()
+			log.Printf("%s consume %s(%s) subscribe error: %+v", c.macro.name, queueType, queueName, err)
+			go func() {
+				if *flagDebug > 0 {
+					log.Printf("%s wait 500 ms retry consume %s(%s) connect", c.macro.name, queueType, queueName)
+				}
+				time.Sleep(500 * time.Millisecond)
+				c.Consume()
+			}()
 			return nil
 		}
 		return err
 	}
 
 	if *flagDebug > 0 {
-		log.Printf("STOMP %s subscribed", queueName)
+		log.Printf("%s consume %s(%s) subscribed", c.macro.name, queueType, queueName)
 	}
 
-	go stompHandleMessage(sub.C, c.macro)
+	go stompHandleMessage(sub.C, c)
 
 	return nil
 }
@@ -206,14 +226,20 @@ func (c *STOMPMessageQueueProvider) Shutdown() error {
 }
 
 // stompHandleMessage - 处理消息
-func stompHandleMessage(message <-chan *stomp.Message, m *Macro) {
+func stompHandleMessage(message <-chan *stomp.Message, c *STOMPMessageQueueProvider) {
 	for d := range message {
 		if d.Err != nil {
-			if *flagDebug > 0 && !m.mqp.IsShutdown() {
+			if *flagDebug > 0 && !c.IsShutdown() {
 				log.Printf("STOMP subscribe error: %v", d.Err)
 			}
-			if !m.mqp.IsShutdown() {
-				go m.mqp.Consume()
+			if !c.IsShutdown() {
+				go func() {
+					if *flagDebug > 0 {
+						log.Printf("wait 500 ms retry %s mq consume %s connect", c.macro.name, c.QueueName())
+					}
+					time.Sleep(500 * time.Millisecond)
+					c.Consume()
+				}()
 			}
 			return
 		}
@@ -232,23 +258,23 @@ func stompHandleMessage(message <-chan *stomp.Message, m *Macro) {
 			}
 		}
 
-		go func(d *stomp.Message, m *Macro) {
-			_, err := m.Call(msgdata, nil)
+		go func(d *stomp.Message, c *STOMPMessageQueueProvider) {
+			_, err := c.macro.Call(msgdata, nil)
 			if err != nil {
 				if *flagDebug > 0 {
-					log.Printf("%s consume message error: %+v\n===message===\n%s\n", m.name, err, string(d.Body))
+					log.Printf("%s consume message error: %+v\n===message===\n%s\n", c.macro.name, err, string(d.Body))
 				}
 				return
 			}
 			if d.ShouldAck() {
 				stompConn.Ack(d)
 			}
-		}(d, m)
+		}(d, c)
 
 	}
 
 	if *flagDebug > 2 {
-		log.Printf("STOMP message channel closed")
+		log.Printf("%s consume %s(%s) deliveries channel closed", c.macro.name, c.DestType(), c.QueueName())
 	}
 
 }
