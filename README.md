@@ -38,6 +38,7 @@
  - [x] 配置脚本支持完整的`Javascript ECMAScript 5.1`规范
  - [x] 动态查询实现提供器支持不同参数的SQL实现分支
  - [x] 提供oci驱动支持Oracle数据库（参见【[数据库支持列表](docs/db.md)】）
+ - [x] 消息接收与发送支持，包括stomp、amqp、kafka等协议
 
 ## 快速入门
 
