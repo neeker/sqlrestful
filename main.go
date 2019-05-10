@@ -92,9 +92,9 @@ func main() {
 	}
 
 	if macrosManager.MessageQueueConfig().IsMessageQueueEnabled() {
-		fmt.Printf("  MQM Driver  : %s\n", macrosManager.MessageQueueConfig().Driver)
+		fmt.Printf("  MQ Provider : %s\n", macrosManager.MessageQueueConfig().Driver)
 	} else {
-		fmt.Printf("  MQM Driver  : <Disabled>\n")
+		fmt.Printf("  MQ Provider : <Disabled>\n")
 	}
 
 	if tmpPort == ":80" {

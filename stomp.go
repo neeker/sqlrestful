@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/go-stomp/stomp"
+	"github.com/go-stomp/stomp/frame"
 )
 
 // STOMPEmitMessage - STOMP 发送消息结构
@@ -306,22 +307,48 @@ func stompHandleMessage(message <-chan *stomp.Message, c *STOMPMessageQueueProvi
 		var msgdata map[string]interface{}
 		if err := json.Unmarshal(d.Body, &msgdata); err != nil {
 			msgdata = map[string]interface{}{
-				"message": string(d.Body),
+				"data": string(d.Body),
 			}
 		}
 
-		go func(d *stomp.Message, c *STOMPMessageQueueProvider) {
-			_, err := c.macro.Call(msgdata, nil)
+		msgHeaders := map[string]string{}
+
+		for i := 0; i < d.Header.Len(); i++ {
+			k, v := d.Header.GetAt(i)
+			msgHeaders[k] = v
+		}
+
+		msgdata["__header__"] = msgHeaders
+
+		go func(d *stomp.Message) {
+			hasReply, outMsg, outHeader, err := c.macro.MsgCall(msgdata)
+
 			if err != nil {
-				if *flagDebug > 0 {
-					log.Printf("%s consume message error: %+v\n===message===\n%s\n", c.macro.name, err, string(d.Body))
-				}
+				log.Printf("%s consume message error: %+v\n===message===\n%s\n", c.macro.name, err, string(d.Body))
 				return
 			}
+
+			if hasReply {
+				sender, err := macrosManager.MessageSendProvider()
+
+				if err != nil {
+					log.Printf("%s consume message reply error: %v", c.macro.name, err)
+					return
+				}
+
+				jsonData, _ := json.Marshal(outMsg)
+				sender.EmitMessage(c.macro.ReplyDestName(), string(jsonData), outHeader)
+
+				if err != nil {
+					log.Printf("%s consume message reply error: %v", c.macro.name, err)
+					return
+				}
+			}
+
 			if d.ShouldAck() {
 				stompConn.Ack(d)
 			}
-		}(d, c)
+		}(d)
 
 	}
 
@@ -393,12 +420,30 @@ reconn:
 			goto reconn
 		}
 		msg.tries++
-		if err := c.conn.Send(msg.dest, "", []byte(msg.msg)); err != nil {
+
+		msgHeaders := []func(*frame.Frame) error{}
+
+		shouldAck := false
+		for k, v := range msg.opts {
+			sv := fmt.Sprintf("%v", v)
+			if strings.ToLower(k) == "ack" {
+				shouldAck = (strings.ToLower(sv) != "auto")
+				continue
+			}
+			msgHeaders = append(msgHeaders, stomp.SendOpt.Header(k, sv))
+		}
+
+		if shouldAck {
+			msgHeaders = append(msgHeaders, stomp.SendOpt.Receipt)
+		}
+
+		if err := c.conn.Send(msg.dest, "", []byte(msg.msg), msgHeaders...); err != nil {
 			log.Printf("message sender emit error: %v", err)
 			c.failmsg = msg
 			time.Sleep(500 * time.Millisecond)
 			goto reconn
 		}
+
 	}
 
 }

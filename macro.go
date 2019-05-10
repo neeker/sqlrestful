@@ -72,6 +72,7 @@ type Macro struct {
 	Jwt          *JwtConfig                   //JWT身份配置
 	Mq           *MessageQueueConfig          //消息队列配置
 	Consume      map[string]string            //消费消息配置
+	Reply        *MessageReplyer              //应答配置
 	Db           *DatabaseConfig              //数据库配置
 	Bind         map[string]string            //绑定表达式
 	Impl         string                       //实现语言：js、sql、cmd
@@ -1116,4 +1117,82 @@ func (m *Macro) ConsumeMessage() error {
 // ShutdownConsume - 停止消费
 func (m *Macro) ShutdownConsume() error {
 	return m.mqp.Shutdown()
+}
+
+// HasMessageReply - 是否需要回复消息
+func (m *Macro) HasMessageReply() bool {
+	return m.Reply != nil && (m.Reply.Queue != "" || m.Reply.Topic != "" || m.Reply.Name != "")
+}
+
+// ReplyDestName - 应答目标名称
+func (m *Macro) ReplyDestName() string {
+	if m.Reply == nil {
+		return ""
+	}
+
+	if m.Reply.Topic != "" {
+		return m.Reply.Topic
+	} else if m.Reply.Queue != "" {
+		return m.Reply.Queue
+	}
+	return m.Reply.Name
+}
+
+// ReplyShouldAck - 是否需要
+func (m *Macro) ReplyShouldAck() bool {
+	return strings.ToLower(m.Reply.Ack) != "auto"
+}
+
+// MsgCall - 执行消息
+func (m *Macro) MsgCall(input map[string]interface{}) (bool, interface{}, map[string]interface{}, error) {
+	retData, err := m.Call(input, nil)
+	if err != nil {
+		return false, nil, nil, err
+	}
+
+	if !m.HasMessageReply() {
+		return false, nil, nil, nil
+	}
+
+	retHeader := map[string]interface{}{}
+
+	if len(m.Reply.Header) > 0 {
+		vm := initJSVM(map[string]interface{}{
+			"$input": input,
+			"$name":  m.name,
+			"$stage": "const",
+		})
+		for k, src := range m.Reply.Header {
+			if *flagDebug > 2 {
+				log.Printf("run %s message header(%s): %s\n", m.name, k, src)
+			}
+
+			val, err := vm.RunString(src)
+			if err != nil {
+				log.Printf("run %s header(%s=\"%s\") error: %v\n", m.name, k, src, err)
+			}
+			retHeader[k] = val.Export()
+		}
+	}
+
+	if m.Format == "origin" {
+		if *flagDebug > 2 {
+			log.Printf("%s ret is origin\n", m.name)
+		}
+		return true, retData, retHeader, nil
+	}
+
+	msgOut := map[string]interface{}{
+		"code":    0,
+		"message": "操作成功！",
+	}
+
+	if m.Format == "nil" {
+		return true, msgOut, retHeader, nil
+	}
+
+	msgOut["data"] = retData
+
+	return true, msgOut, retHeader, nil
+
 }

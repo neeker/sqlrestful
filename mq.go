@@ -33,6 +33,15 @@ import (
 	"sync"
 )
 
+// MessageReplyer - 消息应答
+type MessageReplyer struct {
+	Topic  string            //主题名
+	Queue  string            //队列名
+	Name   string            //名称
+	Ack    string            //应答模式
+	Header map[string]string //头
+}
+
 // MessageQueueProvider - 消息实现提供器
 type MessageQueueProvider interface {
 	//消费
