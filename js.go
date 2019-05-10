@@ -52,6 +52,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("exec_sql", jsExecSQLFunc)
 	vm.Set("exec_cmd", jsExecCommandFunc)
 	vm.Set("log", log.Println)
+	vm.Set("emit_msg", jsExecEmitMessage)
 	return vm
 }
 
@@ -352,4 +353,24 @@ func jsExecCommandFunc(cmdline string, args ...string) (interface{}, error) {
 
 	return outData, nil
 
+}
+
+//发送消息
+func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) (bool, error) {
+	var arg map[string]interface{}
+
+	if len(args) > 0 {
+		arg = args[0]
+	}
+
+	sender, err := macrosManager.MessageSendProvider()
+
+	if err != nil {
+		return false, err
+	}
+
+	if err := sender.EmitMessage(dest, msg, arg); err != nil {
+		return false, err
+	}
+	return true, nil
 }

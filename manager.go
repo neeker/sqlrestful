@@ -469,6 +469,8 @@ func NewManager(configpath string) (*Manager, error) {
 		meta.Mq = new(MessageQueueConfig)
 	}
 
+	meta.Mq.sendMutex = &sync.RWMutex{}
+
 	if meta.Mq.Driver == "" {
 		meta.Mq.Driver = *flagMQDriver
 	}
@@ -621,6 +623,16 @@ func (m *Manager) ServiceBrand() string {
 //MessageQueueConfig - 获取消息队列配置
 func (m *Manager) MessageQueueConfig() *MessageQueueConfig {
 	return m.meta.Mq
+}
+
+//MessageSendProvider - 消息发送
+func (m *Manager) MessageSendProvider() (MessageSendProvider, error) {
+	return m.MessageQueueConfig().MessageSendProvider()
+}
+
+//HasMessageSendProvider - 消息发送
+func (m *Manager) HasMessageSendProvider() bool {
+	return m.MessageQueueConfig().HasMessageSendProvider()
 }
 
 //IsMessageQueueEnabled - 是否启用了消息队列管理

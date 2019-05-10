@@ -153,7 +153,9 @@ function log(message, ...)
 
 ### `exec_sql`函数
 
-执行`SQL`查询语句并返回查询结果
+执行`SQL`查询语句并返回查询结果。
+
+**函数原型**
 
 ```js
 function exec_sql(cmdline, args{})
@@ -173,14 +175,36 @@ function exec_sql(cmdline, args{})
 
 ### `exec_cmd`函数
 
-//TODO：待实现
+用于执行命令并返回结果。
 
-用于执行命令并返回结果
+**函数原型**
+
+```js
+function exec_cmd(command, args...)
+```
 
 **使用示例**
 
 ```js
 (function(){
-  var dirout = exec("ls", "-l", "/")
+  var dirout = exec_cmd("ls", "-l", "/")
+})()
+```
+
+### `emit_msg`函数
+
+用于发送消息并返回结果。
+
+**函数原型**
+
+```js
+emit_msg(dest, msg, headers{...})
+```
+
+**使用示例**
+
+```js
+(function(){
+  var dirout = emit_msg("app.foo.bar", "test message queue")
 })()
 ```

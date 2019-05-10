@@ -3,7 +3,7 @@ _meta {
 
     driver = "stomp"
 
-    uri = "tcp://user:user9527@test.snz1.cn:61613/"
+    url = "tcp://user:user9527@test.snz1.cn:61613/"
 
   }
 
@@ -20,7 +20,9 @@ _consumer {
 
   exec = <<JS
   (function(){
-    log($input)
+    var msg = JSON.stringify($input)
+    log(msg)
+    log(emit_msg('app.foo.bar', msg))
   })()
   JS
 

@@ -91,6 +91,12 @@ func main() {
 		fmt.Printf("  UUM Security: <Disabled>\n")
 	}
 
+	if macrosManager.MessageQueueConfig().IsMessageQueueEnabled() {
+		fmt.Printf("  MQM Driver  : %s\n", macrosManager.MessageQueueConfig().Driver)
+	} else {
+		fmt.Printf("  MQM Driver  : <Disabled>\n")
+	}
+
 	if tmpPort == ":80" {
 		tmpPort = ""
 	}
@@ -126,6 +132,7 @@ func main() {
 	go func() {
 		<-c
 		stopMacrosConsumeMessage()
+		stopMessageSendProvider()
 		stopRestfulServer()
 	}()
 

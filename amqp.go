@@ -301,7 +301,7 @@ func amqpHandleMessage(deliveries <-chan amqp.Delivery, c *AMQPMessageQueueProvi
 	for d := range deliveries {
 		if *flagDebug > 2 {
 			log.Printf(
-				"%s consume %s(%s) got %dB delivery: [%v] %q",
+				"%s consume %s(%s) got %dB delivery: [%v] %v",
 				c.macro.name,
 				c.DestType(),
 				c.QueueName(),
