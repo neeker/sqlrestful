@@ -146,11 +146,18 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 	}
 
 	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
+
 	if err != nil {
 		return map[string]interface{}{
 			"code":    5000,
 			"message": err.Error(),
 		}, nil
+	}
+
+	rspHdrs := resp.Header()
+	rspHdrsNormalized := map[string]string{}
+	for k, v := range rspHdrs {
+		rspHdrsNormalized[strings.ToLower(k)] = v[0]
 	}
 
 	var respData map[string]interface{}
@@ -160,23 +167,18 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 		respCode = 0
 	}
 
-	if nil != json.Unmarshal(resp.Body(), &respData) || respData == nil || len(respData) == 0 {
-
-		rspHdrs := resp.Header()
-		rspHdrsNormalized := map[string]string{}
-		for k, v := range rspHdrs {
-			rspHdrsNormalized[strings.ToLower(k)] = v[0]
-		}
+	if nil != json.Unmarshal(resp.Body(), &respData) {
 
 		return map[string]interface{}{
-			"status":     resp.Status(),
-			"statusCode": resp.StatusCode(),
-			"headers":    rspHdrsNormalized,
 			"code":       respCode,
-			"body":       string(resp.Body()),
+			"message":    "操作成功！",
+			"data":       string(resp.Body()),
+			"__header__": rspHdrsNormalized,
 		}, nil
 
 	}
+
+	respData["__header__"] = rspHdrsNormalized
 
 	return respData, nil
 

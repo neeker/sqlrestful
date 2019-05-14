@@ -48,9 +48,3 @@
   - `uumapi`表示[用户统一安全认证服务](https://snz1.cn/k8s/javadoc/sc-client-api/)地址
   - `useridtype`表示通过请求头获取到的用户身份标识类型（包括：id、uname等）
   - `userscope`表示登录用户所在的组织域代码（登录的用户必须在该组织域下才能访问）
-
-使用用户统一安全认证服务的启动命令如下所示：
-
-```sh
-
-```

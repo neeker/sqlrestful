@@ -26,19 +26,57 @@ docker run -ti --rm \
   ...
 ```
 
-## 使用`JWT`请求令牌请求接口
+## 在文件中配置`JWT`应用身份
+
+```hcl
+_meta {
+
+  //...
+
+  jwt {
+    //RSA私钥（PEM格式）
+    rsa = <<PEM
+    //PEM私钥
+    PEM
+
+    //协商密钥
+    secret = "*****"
+
+    //请求令牌超时时间（秒）
+    expires = 1800
+  }
+
+  //...
+
+}
+```
+
+## 使用`JWT`请求令牌调用其他接口
 
 通过上述配置后在`JavaScript`脚本中我们便可以使用内置的`call_api`函数携带令牌请求其他微服务接口：
 
-```sh
+```js
 
 (function(){
   var ratdata = call_api("http://appgateway.domain/paht/of/api", {
     method: "GET",
-    ...
+    headers: {
+      ...
+    },
+    body: {
+      ...
+    }
   })
 })()
 
 ```
 
-> 默认情况下call_api根据`JWT`身份资料自动生成`JWT`请求令牌。
+> 内置的`call_api`函数根据`JWT`应用身份资料自动生成`JWT`请求令牌请求指定的接口。
+
+## 直接获取`JWT`请求令牌
+
+```js
+(function(){
+  var jwt_token =  jwt_token()
+})()
+```
