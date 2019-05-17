@@ -37,7 +37,9 @@ import (
 
 	"os/exec"
 
+	"github.com/gorilla/websocket"
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo"
 )
 
 // Cache - 缓存配置
@@ -105,7 +107,7 @@ type Macro struct {
 }
 
 // Call - executes the macro
-func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface{}) (interface{}, error) {
+func (m *Macro) Call(c echo.Context, input map[string]interface{}, inputKey map[string]interface{}) (interface{}, error) {
 
 	ok, err := m.filterSecurity(input)
 	if err != nil {
@@ -132,7 +134,9 @@ func (m *Macro) Call(input map[string]interface{}, inputKey map[string]interface
 		return nil, errValidationError
 	}
 
-	if m.Result == "page" {
+	if m.Result == "websocket" {
+		return nil, m.execWebsocket(c, input)
+	} else if m.Result == "page" {
 		if input["offset"] == nil || input["offset"] == "" {
 			input["offset"] = "0"
 		}
@@ -696,7 +700,7 @@ func (m *Macro) aggregate(input map[string]interface{}, inputKey map[string]inte
 			log.Printf("run %s aggregate: entry %s\n", m.name, macro.name)
 		}
 
-		out, err := macro.Call(input, inputKey)
+		out, err := macro.Call(nil, input, inputKey)
 		if err != nil {
 			return nil, err
 		}
@@ -820,7 +824,7 @@ func (m *Macro) runIncludes(input map[string]interface{}, inputKey map[string]in
 			log.Printf("run %s include: %s\n", m.name, macro.name)
 		}
 
-		_, err := macro.Call(input, inputKey)
+		_, err := macro.Call(nil, input, inputKey)
 		if err != nil {
 			return err
 		}
@@ -1145,7 +1149,7 @@ func (m *Macro) ReplyShouldAck() bool {
 
 // MsgCall - 执行消息
 func (m *Macro) MsgCall(input map[string]interface{}) (bool, interface{}, map[string]interface{}, error) {
-	retData, err := m.Call(input, nil)
+	retData, err := m.Call(nil, input, nil)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -1195,4 +1199,148 @@ func (m *Macro) MsgCall(input map[string]interface{}) (bool, interface{}, map[st
 
 	return true, msgOut, retHeader, nil
 
+}
+
+// execWebsocket - 处理Websocket
+func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) error {
+	upgrader := websocket.Upgrader{}
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return err
+	}
+	defer ws.Close()
+	for {
+		_, msgBytes, err := ws.ReadMessage()
+
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s websocket read message error: %v", m.name, err)
+				break
+			}
+		}
+
+		if *flagDebug > 2 {
+			var clientIP = c.RealIP()
+			if clientIP == "" {
+				clientIP = strings.Split(c.Request().RemoteAddr, ":")[0]
+			}
+			fmt.Printf("%s websocket client(%s) send message: %s\n", m.name, clientIP, msgBytes)
+		}
+
+		var out interface{}
+		var msgInput interface{}
+		if json.Unmarshal(msgBytes, &msgInput) != nil {
+			input["message"] = string(msgBytes)
+		} else {
+			input["message"] = msgInput
+		}
+
+		execScript := m.Exec
+		scriptImpl := m.Impl
+
+		if m.Provider != "" {
+			resolvedVar, err := m.resolveExecScript(m.Provider, input)
+
+			if err != nil {
+				return err
+			}
+
+			switch resolvedVar.(type) {
+			case string:
+				execScript = resolvedVar.(string)
+
+				if *flagDebug > 1 {
+					log.Printf("%s websocket resolved exec script:\n\n%s\n\n", m.name, execScript)
+				}
+
+			case []string:
+				for _, v := range resolvedVar.([]string) {
+					execScript = execScript + "\n" + v
+				}
+				if *flagDebug > 1 {
+					log.Printf("%s websocket resolved exec sql:\n\n%s\n\n", m.name, execScript)
+				}
+			default:
+				v, _ := json.Marshal(resolvedVar)
+				return fmt.Errorf("%s websocket provider return error type: %s", m.name, string(v))
+			}
+		}
+
+		switch {
+		case scriptImpl == "js":
+			out, err = m.execJavaScript(execScript, input)
+		case scriptImpl == "cmd":
+			out, err = m.execCommand(execScript, input)
+		default:
+			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
+		}
+
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s websocket exec error: %v\n", m.name, err)
+			}
+			return err
+		}
+
+		if *flagDebug > 1 {
+			log.Printf("%s websocket exec result: %v\n", m.name, out)
+		}
+
+		if m.Result == "object" && scriptImpl == "sql" {
+			switch out.(type) {
+			case []map[string]interface{}:
+				if *flagDebug > 1 {
+					log.Printf("%s websocket exec origin result was list: %v\n", m.name, out)
+				}
+				tmp := out.([]map[string]interface{})
+				if len(tmp) < 1 {
+					return errObjNotFound
+				}
+				out = tmp[0]
+			default:
+				if *flagDebug > 0 {
+					log.Printf("%s websocket exec origin result was not list: %v\n", m.name, out)
+				}
+			}
+		}
+
+		out, err = m.transform(out)
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s websocket transformer error: %v\n", m.name, err)
+			}
+			return err
+		}
+
+		if *flagDebug > 1 {
+			log.Printf("%s websocket exec transformer result: %v\n", m.name, out)
+		}
+
+		if m.Format == "origin" {
+			if *flagDebug > 2 {
+				log.Printf("%s websocket ret is origin\n", m.name)
+			}
+			err = ws.WriteJSON(out)
+		} else if m.Format == "nil" {
+			err = ws.WriteJSON(map[string]interface{}{
+				"code":    0,
+				"message": "操作成功！",
+			})
+		} else {
+			err = ws.WriteJSON(map[string]interface{}{
+				"code":    0,
+				"message": "操作成功！",
+				"data":    out,
+			})
+		}
+
+		if err != nil {
+			if *flagDebug > 0 {
+				log.Printf("%s websocket write json error: %v\n", m.name, err)
+			}
+			return err
+		}
+
+	}
+	return nil
 }

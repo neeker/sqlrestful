@@ -14,6 +14,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-stomp/stomp v2.0.2+incompatible
+	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kshvakov/clickhouse v1.3.5

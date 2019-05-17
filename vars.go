@@ -64,6 +64,7 @@ var (
 	errValidationError    = errors.New("校验出错了")
 	errAuthorizationError = errors.New("用户未登录")
 	errAccessDenyError    = errors.New("无权访问")
+	errHandlerError       = errors.New("请求")
 )
 
 var (
@@ -82,7 +83,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.10ex"
+	serverVersion = "v0.11ex"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _
