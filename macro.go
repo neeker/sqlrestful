@@ -1329,17 +1329,14 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		var out interface{}
 		var msgInput map[string]interface{}
 		if json.Unmarshal(msgBytes, &msgInput) != nil {
-			msgInput = map[string]interface{}{}
-			for k, v := range input {
-				msgInput[k] = v
+			msgInput = map[string]interface{}{
+				"data":         string(msgBytes),
+				"__header__":   input,
+				"__clientid__": clientid,
 			}
-			msgInput["data"] = string(msgBytes)
 		} else {
-			for k, v := range input {
-				if msgInput[k] == nil {
-					msgInput[k] = v
-				}
-			}
+			msgInput["__header__"] = input
+			msgInput["__clientid__"] = clientid
 		}
 
 		execScript := m.Exec

@@ -77,6 +77,13 @@ func NewWSClientRegistry(endpoint string) *WebsocketClientRegistry {
 	return r
 }
 
+// GetWSClientRegistry - 获取
+func GetWSClientRegistry(endpoint string) *WebsocketClientRegistry {
+	endpointMutex.RLock()
+	defer endpointMutex.RUnlock()
+	return endpointRegistry[endpoint]
+}
+
 // AddWebsocketClient - 添加
 func (r *WebsocketClientRegistry) AddWebsocketClient(id string, ws *websocket.Conn) {
 	r.wsClientMutex.Lock()

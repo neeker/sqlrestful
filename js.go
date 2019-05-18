@@ -53,6 +53,9 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("exec_cmd", jsExecCommandFunc)
 	vm.Set("log", log.Println)
 	vm.Set("emit_msg", jsExecEmitMessage)
+
+	vm.Set("ws_broacast", jsExecWebsocketBroacastMessage)
+	vm.Set("ws_send", jsExecWebsocketSendMessage)
 	return vm
 }
 
@@ -357,12 +360,14 @@ func jsExecCommandFunc(cmdline string, args ...string) (interface{}, error) {
 
 }
 
-//发送消息
+// jsExecEmitMessage - 发送消息
 func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) (bool, error) {
 	var arg map[string]interface{}
 
 	if len(args) > 0 {
 		arg = args[0]
+	} else {
+		arg = map[string]interface{}{}
 	}
 
 	sender, err := macrosManager.MessageSendProvider()
@@ -375,4 +380,24 @@ func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) 
 		return false, err
 	}
 	return true, nil
+}
+
+// jsExecWebsocketBroacastMessage -
+func jsExecWebsocketBroacastMessage(ch string, args ...interface{}) (bool, error) {
+	r := GetWSClientRegistry(ch)
+	if r == nil {
+		return false, nil
+	}
+	r.BroacastWebsocketMessage(args)
+	return true, nil
+}
+
+// jsExecWebsocketSendMessage -
+func jsExecWebsocketSendMessage(ch string, cid string, args ...interface{}) (bool, error) {
+	r := GetWSClientRegistry(ch)
+	if r == nil {
+		return false, nil
+	}
+	err := r.SendWebsocketMessage(cid, args)
+	return err == nil, err
 }
