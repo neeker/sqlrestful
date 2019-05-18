@@ -758,7 +758,7 @@ func routeExecMacro(c echo.Context) (err error) {
 
 	out, err := macro.Call(c, input, keyInput)
 
-	if macro.Result == "websocket" {
+	if macro.IsWebsocket() {
 		return err
 	}
 

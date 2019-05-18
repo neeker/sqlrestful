@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Sample of websocket with SQLRestful</title>
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+
+    <script>
+      $(function() {
+        var ws = new WebSocket("ws://localhost/echo");
+        
+        ws.onerror = function(e) {
+          $('#wsStatus').text("Error")
+        }
+        ws.onopen = function(e) {
+          $('#wsStatus').text("Connected")
+        }
+        ws.onclose = function(e) {
+          $('#wsStatus').text("Closed")
+        }
+        ws.onmessage = function(e) {
+          $('<li>').text(event.data).appendTo($ul);
+        }
+        
+        var $ul = $('#msg-list');
+        $('#sendBtn').click(function(){
+          var data = $('#name').val();
+          ws.send(data);
+        });
+      });
+    </script>
+</head>
+<body>
+<p>
+<span>Message:</span>
+<input id="name" type="text"/>
+<input type="button" id="sendBtn" value="send"/>
+<span>Status:</span><span id="wsStatus">Closed</span>
+</p>
+<div>
+<ul id="msg-list"></ul>
+</div>
+</body>
+</html>

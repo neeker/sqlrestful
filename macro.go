@@ -31,6 +31,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -48,11 +51,22 @@ type Cache struct {
 	Evit []string //移除缓存列表
 }
 
-// Author 作者
+// Author - 作者
 type Author struct {
 	Name  string //名称
 	Email string //邮件
 	URL   string //URL
+}
+
+// WebsocketConfig - websocket配置
+type WebsocketConfig struct {
+	Enabled          bool     //是否启用
+	HandshakeTimeout int      //握手超时
+	ReadBufferSize   int      //读缓冲
+	WriteBufferSize  int      //写缓冲
+	Subprotocols     []string //子协议
+	Origins          []string //允许的源
+	Compression      bool     //是否压缩
 }
 
 // Macro - a macro configuration
@@ -83,6 +97,9 @@ type Macro struct {
 	Provider     string                       //实现提供器
 	Aggregate    []string                     //组合实现
 	Transformer  string                       //转换器
+	Websocket    *WebsocketConfig             //Websocket配置
+	Static       string                       //静态目录
+	File         string                       //静态文件
 	Tags         []string                     //定义标签
 	Model        map[string]map[string]string //应答模型
 	Proxy        []string                     //前置代理
@@ -134,7 +151,7 @@ func (m *Macro) Call(c echo.Context, input map[string]interface{}, inputKey map[
 		return nil, errValidationError
 	}
 
-	if m.Result == "websocket" {
+	if m.IsWebsocket() {
 		return nil, m.execWebsocket(c, input)
 	} else if m.Result == "page" {
 		if input["offset"] == nil || input["offset"] == "" {
@@ -1201,11 +1218,73 @@ func (m *Macro) MsgCall(input map[string]interface{}) (bool, interface{}, map[st
 
 }
 
+// IsWebsocket - 是否为websocket服务
+func (m *Macro) IsWebsocket() bool {
+	return m.Websocket != nil && m.Websocket.Enabled
+}
+
+// IsStatic - 是否静态目录
+func (m *Macro) IsStatic() bool {
+	return m.Static != ""
+}
+
+// IsFile - 是否静态文件
+func (m *Macro) IsFile() bool {
+	if m.IsStatic() {
+		return false
+	}
+	return m.File != ""
+}
+
 // execWebsocket - 处理Websocket
 func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) error {
 	upgrader := websocket.Upgrader{}
+
+	if m.Websocket.HandshakeTimeout > 0 {
+		upgrader.HandshakeTimeout = time.Second * time.Duration(m.Websocket.HandshakeTimeout)
+	}
+
+	if m.Websocket.ReadBufferSize > 0 {
+		upgrader.ReadBufferSize = m.Websocket.ReadBufferSize
+	}
+
+	if m.Websocket.WriteBufferSize > 0 {
+		upgrader.WriteBufferSize = m.Websocket.WriteBufferSize
+	}
+
+	if len(m.Websocket.Subprotocols) > 0 {
+		upgrader.Subprotocols = m.Websocket.Subprotocols
+	}
+
+	if len(m.Websocket.Origins) > 0 {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			origin := r.Header["Origin"]
+			if len(origin) == 0 {
+				return true
+			}
+			u, err := url.Parse(origin[0])
+			if err != nil {
+				return false
+			}
+			if strings.EqualFold(u.Host, r.Host) {
+				return true
+			}
+			for _, d := range m.Websocket.Origins {
+				if match, _ := regexp.MatchString(d, u.Host); match {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	if m.Websocket.Compression {
+		upgrader.EnableCompression = m.Websocket.Compression
+	}
+
 	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
+		log.Printf("%s websocket upgrade error: %v", m.name, err)
 		return err
 	}
 	defer ws.Close()
@@ -1213,10 +1292,8 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		_, msgBytes, err := ws.ReadMessage()
 
 		if err != nil {
-			if *flagDebug > 0 {
-				log.Printf("%s websocket read message error: %v", m.name, err)
-				break
-			}
+			log.Printf("%s websocket read message error: %v", m.name, err)
+			return err
 		}
 
 		if *flagDebug > 2 {
@@ -1228,20 +1305,29 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		}
 
 		var out interface{}
-		var msgInput interface{}
+		var msgInput map[string]interface{}
 		if json.Unmarshal(msgBytes, &msgInput) != nil {
-			input["message"] = string(msgBytes)
+			msgInput = map[string]interface{}{}
+			for k, v := range input {
+				msgInput[k] = v
+			}
+			msgInput["data"] = string(msgBytes)
 		} else {
-			input["message"] = msgInput
+			for k, v := range input {
+				if msgInput[k] == nil {
+					msgInput[k] = v
+				}
+			}
 		}
 
 		execScript := m.Exec
 		scriptImpl := m.Impl
 
 		if m.Provider != "" {
-			resolvedVar, err := m.resolveExecScript(m.Provider, input)
+			resolvedVar, err := m.resolveExecScript(m.Provider, msgInput)
 
 			if err != nil {
+				log.Printf("%s websocket provider error: %s", m.name, err)
 				return err
 			}
 
@@ -1268,17 +1354,15 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 
 		switch {
 		case scriptImpl == "js":
-			out, err = m.execJavaScript(execScript, input)
+			out, err = m.execJavaScript(execScript, msgInput)
 		case scriptImpl == "cmd":
-			out, err = m.execCommand(execScript, input)
+			out, err = m.execCommand(execScript, msgInput)
 		default:
-			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), input)
+			out, err = m.execSQLQuery(strings.Split(strings.TrimSpace(execScript), "---"), msgInput)
 		}
 
 		if err != nil {
-			if *flagDebug > 0 {
-				log.Printf("%s websocket exec error: %v\n", m.name, err)
-			}
+			log.Printf("%s websocket exec error: %v\n", m.name, err)
 			return err
 		}
 
@@ -1306,9 +1390,7 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 
 		out, err = m.transform(out)
 		if err != nil {
-			if *flagDebug > 0 {
-				log.Printf("%s websocket transformer error: %v\n", m.name, err)
-			}
+			log.Printf("%s websocket transformer error: %v\n", m.name, err)
 			return err
 		}
 
@@ -1321,12 +1403,7 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 				log.Printf("%s websocket ret is origin\n", m.name)
 			}
 			err = ws.WriteJSON(out)
-		} else if m.Format == "nil" {
-			err = ws.WriteJSON(map[string]interface{}{
-				"code":    0,
-				"message": "操作成功！",
-			})
-		} else {
+		} else if m.Format != "nil" {
 			err = ws.WriteJSON(map[string]interface{}{
 				"code":    0,
 				"message": "操作成功！",
@@ -1335,12 +1412,8 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		}
 
 		if err != nil {
-			if *flagDebug > 0 {
-				log.Printf("%s websocket write json error: %v\n", m.name, err)
-			}
+			log.Printf("%s websocket write json error: %v\n", m.name, err)
 			return err
 		}
-
 	}
-	return nil
 }

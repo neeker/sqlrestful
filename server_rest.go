@@ -76,6 +76,16 @@ func startRestfulServer() error {
 
 	//添加微服务接口路由
 	for _, macro := range macrosManager.List() {
+		if macro.IsStatic() {
+			e.Static(routeBase+macro.Path, macro.Static)
+			continue
+		}
+
+		if macro.IsFile() {
+			e.File(routeBase+macro.Path, macro.File)
+			continue
+		}
+
 		if len(macro.Exec) > 0 {
 			if len(macro.Methods) > 0 {
 				for _, method := range macro.Methods {
@@ -93,23 +103,24 @@ func startRestfulServer() error {
 						e.DELETE(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
 					}
 				}
-			} else {
-				e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+				continue
 			}
-		} else {
-			for method, childMacro := range macro.methodMacros {
-				switch {
-				case method == "GET":
-					e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "POST":
-					e.POST(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "PUT":
-					e.PUT(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "PATCH":
-					e.PATCH(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				case method == "DELETE":
-					e.DELETE(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
-				}
+			e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(macro))
+			continue
+		}
+
+		for method, childMacro := range macro.methodMacros {
+			switch {
+			case method == "GET":
+				e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+			case method == "POST":
+				e.POST(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+			case method == "PUT":
+				e.PUT(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+			case method == "PATCH":
+				e.PATCH(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
+			case method == "DELETE":
+				e.DELETE(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))
 			}
 		}
 	}
