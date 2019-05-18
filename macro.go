@@ -1299,7 +1299,12 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		if *flagDebug > 2 {
 			var clientIP = c.RealIP()
 			if clientIP == "" {
-				clientIP = strings.Split(c.Request().RemoteAddr, ":")[0]
+				portIndex := strings.LastIndex(c.Request().RemoteAddr, ":")
+				if portIndex > 0 {
+					clientIP = c.Request().RemoteAddr[0:portIndex]
+				} else {
+					clientIP = c.Request().RemoteAddr
+				}
 			}
 			fmt.Printf("%s websocket client(%s) send message: %s\n", m.name, clientIP, msgBytes)
 		}
