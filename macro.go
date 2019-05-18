@@ -28,6 +28,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -38,6 +39,7 @@ import (
 	"strings"
 	"time"
 
+	"crypto/sha256"
 	"os/exec"
 
 	"github.com/gorilla/websocket"
@@ -121,6 +123,7 @@ type Macro struct {
 	methodMacros map[string]*Macro            //内置的方法宏
 	consts       map[string]interface{}       //常量表
 	mqp          MessageQueueProvider         //提供器实现
+	websocket    *WebsocketClientRegistry     //客户端注册表
 }
 
 // Call - executes the macro
@@ -1288,6 +1291,20 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		return err
 	}
 	defer ws.Close()
+
+	clientid := c.Request().RemoteAddr + "=" + c.Request().Header.Get("sec-websocket-key")
+	var sha256ch = make(chan []byte, 1)
+	clientsha256 := sha256.Sum256([]byte(clientid))
+	sha256ch <- clientsha256[:]
+	clientid = hex.EncodeToString(<-sha256ch)
+
+	if *flagDebug > 2 {
+		log.Printf("%s websocket client=%s", m.name, clientid)
+	}
+
+	m.websocket.AddWebsocketClient(clientid, ws)
+	defer m.websocket.RemoveWebsocketClient(clientid)
+
 	for {
 		_, msgBytes, err := ws.ReadMessage()
 
@@ -1407,9 +1424,9 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 			if *flagDebug > 2 {
 				log.Printf("%s websocket ret is origin\n", m.name)
 			}
-			err = ws.WriteJSON(out)
+			m.websocket.SendWebsocketMessage(clientid, out)
 		} else if m.Format != "nil" {
-			err = ws.WriteJSON(map[string]interface{}{
+			m.websocket.SendWebsocketMessage(clientid, map[string]interface{}{
 				"code":    0,
 				"message": "操作成功！",
 				"data":    out,

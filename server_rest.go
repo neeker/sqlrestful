@@ -87,6 +87,9 @@ func startRestfulServer() error {
 		}
 
 		if len(macro.Exec) > 0 {
+			if macro.IsWebsocket() {
+				macro.websocket = NewWSClientRegistry(macro.name)
+			}
 			if len(macro.Methods) > 0 {
 				for _, method := range macro.Methods {
 					method = strings.ToUpper(method)
@@ -110,6 +113,9 @@ func startRestfulServer() error {
 		}
 
 		for method, childMacro := range macro.methodMacros {
+			if macro.IsWebsocket() {
+				childMacro.websocket = NewWSClientRegistry(childMacro.name)
+			}
 			switch {
 			case method == "GET":
 				e.GET(routeBase+macro.Path, routeExecMacro, getMiddlewareAuthorizeFunc(childMacro))

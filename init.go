@@ -105,6 +105,7 @@ func init() {
 	}
 
 	{
+		InitEndpointRegistry()
 		manager, err := NewManager(*flagAPIFile)
 		if err != nil {
 			fmt.Printf("Run SQLRestful macro error: %v!", err)
