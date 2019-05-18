@@ -384,20 +384,33 @@ func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) 
 
 // jsExecWebsocketBroacastMessage -
 func jsExecWebsocketBroacastMessage(ch string, args ...interface{}) (bool, error) {
+	var msg interface{}
+	if len(args) == 1 {
+		msg = args[0]
+	} else {
+		msg = args
+	}
 	r := GetWSClientRegistry(ch)
 	if r == nil {
-		return false, nil
+		return false, fmt.Errorf("not found endpoint %s", ch)
 	}
-	r.BroacastWebsocketMessage(args)
+	r.BroacastWebsocketMessage(msg)
 	return true, nil
 }
 
 // jsExecWebsocketSendMessage -
 func jsExecWebsocketSendMessage(ch string, cid string, args ...interface{}) (bool, error) {
+	var msg interface{}
+	if len(args) == 1 {
+		msg = args[0]
+	} else {
+		msg = args
+	}
+
 	r := GetWSClientRegistry(ch)
 	if r == nil {
 		return false, nil
 	}
-	err := r.SendWebsocketMessage(cid, args)
+	err := r.SendWebsocketMessage(cid, msg)
 	return err == nil, err
 }

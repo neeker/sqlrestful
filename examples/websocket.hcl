@@ -33,7 +33,14 @@ echo {
 
   exec =<<JS
   (function(){
-    log($input)
+    ws_send('echo', $input.__clientid__, {
+      "your": $input.__clientid__,
+      "echo": $input.data
+    })
+    ws_broacast('echo', {
+      "from": $input.__clientid__,
+      "echo": $input.data
+    })
     return "ok"
   })()
   JS
