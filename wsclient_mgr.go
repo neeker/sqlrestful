@@ -62,9 +62,8 @@ func NewWSClientRegistry(endpoint string) *WebsocketClientRegistry {
 	if endpointRegistry[endpoint] != nil {
 		endpointMutex.RUnlock()
 		return endpointRegistry[endpoint]
-	} else {
-		endpointMutex.RUnlock()
 	}
+	endpointMutex.RUnlock()
 
 	endpointMutex.Lock()
 	r := &WebsocketClientRegistry{
