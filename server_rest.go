@@ -76,8 +76,8 @@ func startRestfulServer() error {
 
 	//添加微服务接口路由
 	for _, macro := range macrosManager.List() {
-		if macro.IsStatic() {
-			e.Static(routeBase+macro.Path, macro.Static)
+		if macro.IsDir() {
+			e.Static(routeBase+macro.Path, macro.Dir)
 			continue
 		}
 

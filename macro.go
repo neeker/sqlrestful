@@ -100,7 +100,7 @@ type Macro struct {
 	Aggregate    []string                     //组合实现
 	Transformer  string                       //转换器
 	Websocket    *WebsocketConfig             //Websocket配置
-	Static       string                       //静态目录
+	Dir          string                       //静态目录
 	File         string                       //静态文件
 	Tags         []string                     //定义标签
 	Model        map[string]map[string]string //应答模型
@@ -1226,14 +1226,14 @@ func (m *Macro) IsWebsocket() bool {
 	return m.Websocket != nil && m.Websocket.Enabled
 }
 
-// IsStatic - 是否静态目录
-func (m *Macro) IsStatic() bool {
-	return m.Static != ""
+// IsDir - 是否静态目录
+func (m *Macro) IsDir() bool {
+	return m.Dir != ""
 }
 
 // IsFile - 是否静态文件
 func (m *Macro) IsFile() bool {
-	if m.IsStatic() {
+	if m.IsDir() {
 		return false
 	}
 	return m.File != ""
