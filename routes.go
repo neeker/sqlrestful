@@ -134,8 +134,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 		}
 		apiPathMethods := make(map[string]interface{})
 		if len(macro.Exec) > 0 {
-			definedMethods := []string{}
-			copy(definedMethods, macro.Methods)
+			definedMethods := macro.Methods[:]
 			if len(definedMethods) == 0 {
 				definedMethods = append(definedMethods, "GET")
 			}
