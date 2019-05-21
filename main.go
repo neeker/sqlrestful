@@ -102,7 +102,7 @@ func main() {
 	}
 
 	if macrosManager.IsSwaggerEnabled() {
-		fmt.Printf("  Swagger UI  : %s\n", "http://"+tmpHostIP+tmpPort+"/swagger-ui.html")
+		fmt.Printf("  Swagger UI  : %s\n", "http://"+tmpHostIP+tmpPort+macrosManager.ServiceBasePath()+"/swagger-ui.html")
 	} else {
 		fmt.Printf("  Swagger UI  : %s\n", "<Disabled>")
 	}
