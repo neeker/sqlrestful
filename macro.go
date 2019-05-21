@@ -586,7 +586,7 @@ func (m *Macro) execJavaScript(javascript string, input map[string]interface{}) 
 		if *flagDebug > 0 {
 			log.Printf("run %s exec(js) error: %v\n", m.name, err)
 		}
-		return nil, fmt.Errorf("run %s exec(js) error: %v", m.name, err)
+		return nil, err
 	}
 
 	return val.Export(), nil
@@ -610,7 +610,7 @@ func (m *Macro) execJavaScriptTotal(javascript string, input map[string]interfac
 		if *flagDebug > 0 {
 			log.Printf("run %s total(js) error: %v\n", m.name, err)
 		}
-		return 0, fmt.Errorf("run %s total(js) error: %v", m.name, err)
+		return 0, err
 	}
 
 	return val.ToInteger(), nil

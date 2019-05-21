@@ -61,7 +61,7 @@ var (
 var (
 	errNoMacroFound       = errors.New("未知宏定义")
 	errObjNotFound        = errors.New("对象不存在")
-	errValidationError    = errors.New("校验出错了")
+	errValidationError    = errors.New("请求参数不正确")
 	errAuthorizationError = errors.New("用户未登录")
 	errAccessDenyError    = errors.New("无权访问")
 	errHandlerError       = errors.New("请求")
@@ -83,7 +83,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.11ex"
+	serverVersion = "v0.12ex"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _

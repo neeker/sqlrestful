@@ -82,11 +82,23 @@ func jsFetchfunc(url string, options ...map[string]interface{}) (map[string]inte
 		}
 	}
 
+	var req *resty.Request
+
 	if nil != option["body"] {
 		body, _ = option["body"]
 	}
 
-	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
+	switch {
+	case option["format"] == "form":
+		req = resty.R().SetHeaders(headers).SetFormData(convertBodyToMap(body))
+	case option["format"] == "query":
+		req = resty.R().SetHeaders(headers).SetQueryParams(convertBodyToMap(body))
+	default:
+		req = resty.R().SetHeaders(headers).SetBody(body)
+	}
+
+	resp, err := req.Execute(method, url)
+
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +115,19 @@ func jsFetchfunc(url string, options ...map[string]interface{}) (map[string]inte
 		"headers":    rspHdrsNormalized,
 		"body":       string(resp.Body()),
 	}, nil
+}
+
+func convertBodyToMap(body interface{}) map[string]string {
+	switch body.(type) {
+	case map[string]interface{}:
+		out := map[string]string{}
+		for k, v := range body.(map[string]interface{}) {
+			out[k] = fmt.Sprintf("%v", v)
+		}
+		return out
+	default:
+		return map[string]string{}
+	}
 }
 
 func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]interface{}, error) {
@@ -144,11 +169,22 @@ func jsJWTFetchfunc(url string, options ...map[string]interface{}) (map[string]i
 		headers["Content-Type"] = "application/json; charset=UTF-8"
 	}
 
+	var req *resty.Request
+
 	if nil != option["body"] {
 		body, _ = option["body"]
 	}
 
-	resp, err := resty.R().SetHeaders(headers).SetBody(body).Execute(method, url)
+	switch {
+	case option["format"] == "form":
+		req = resty.R().SetHeaders(headers).SetFormData(convertBodyToMap(body))
+	case option["format"] == "query":
+		req = resty.R().SetHeaders(headers).SetQueryParams(convertBodyToMap(body))
+	default:
+		req = resty.R().SetHeaders(headers).SetBody(body)
+	}
+
+	resp, err := req.Execute(method, url)
 
 	if err != nil {
 		return map[string]interface{}{
