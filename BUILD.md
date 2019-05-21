@@ -14,6 +14,13 @@ docker build -t snz1/sqlrestful .
 docker build --build-arg GOBUILD_TAGS=oracle -t snz1/sqlrestful .
 ```
 
+### 推送到仓库
+
+```sh
+docker tag snz1/sqlrestful snz1/sqlrestful:latest
+docker push snz1/sqlrestful:latest
+```
+
 ## `Windows`版编译
 
 ```cmd
