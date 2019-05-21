@@ -69,6 +69,7 @@ type WebsocketConfig struct {
 	Subprotocols     []string //子协议
 	Origins          []string //允许的源
 	Compression      bool     //是否压缩
+	Keepalive        int      //keepalive秒
 }
 
 // Macro - a macro configuration
@@ -1302,11 +1303,12 @@ func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) erro
 		log.Printf("%s websocket client=%s", m.name, clientid)
 	}
 
-	m.websocket.AddWebsocketClient(clientid, ws)
+	wsHolder := m.websocket.AddWebsocketClient(clientid, ws)
 	defer m.websocket.RemoveWebsocketClient(clientid)
 
 	for {
 		_, msgBytes, err := ws.ReadMessage()
+		wsHolder.msgTimestamp = time.Now().Unix()
 
 		if err != nil {
 			log.Printf("%s websocket read message error: %v", m.name, err)

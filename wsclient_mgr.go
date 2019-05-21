@@ -30,16 +30,26 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+// WebsocketClientHolder - WebSocket客户端
+type WebsocketClientHolder struct {
+	id           string          //客户端ID
+	start        time.Time       //开始时间
+	ws           *websocket.Conn //websocket连接
+	sendMux      *sync.Mutex     //发送消息锁
+	msgTimestamp int64           //消息时间
+}
+
 // WebsocketClientRegistry - Websocket客户端注册表
 type WebsocketClientRegistry struct {
-	Endpoint      string                     //端点
-	wsConns       map[string]*websocket.Conn //websocket连接
-	sendMuxs      map[string]*sync.Mutex     //send锁
-	wsClientMutex *sync.RWMutex              //websocket客户锁
+	Endpoint      string                            //端点
+	keepalive     int                               //保持keepalive
+	clients       map[string]*WebsocketClientHolder //客户端
+	wsClientMutex *sync.RWMutex                     //websocket客户锁
 }
 
 var (
@@ -57,7 +67,7 @@ func InitEndpointRegistry() {
 }
 
 // NewWSClientRegistry - 创建
-func NewWSClientRegistry(endpoint string) *WebsocketClientRegistry {
+func NewWSClientRegistry(endpoint string, keepalive int) *WebsocketClientRegistry {
 	endpointMutex.RLock()
 	if endpointRegistry[endpoint] != nil {
 		endpointMutex.RUnlock()
@@ -68,10 +78,16 @@ func NewWSClientRegistry(endpoint string) *WebsocketClientRegistry {
 	endpointMutex.Lock()
 	r := &WebsocketClientRegistry{
 		Endpoint:      endpoint,
-		wsConns:       map[string]*websocket.Conn{},
-		sendMuxs:      map[string]*sync.Mutex{},
+		clients:       map[string]*WebsocketClientHolder{},
 		wsClientMutex: &sync.RWMutex{},
 	}
+
+	if keepalive > 0 {
+		r.keepalive = keepalive
+	}
+
+	go r.keepaliveWebsocketClients()
+
 	endpointRegistry[endpoint] = r
 	endpointMutex.Unlock()
 	return r
@@ -85,34 +101,43 @@ func GetWSClientRegistry(endpoint string) *WebsocketClientRegistry {
 }
 
 // AddWebsocketClient - 添加
-func (r *WebsocketClientRegistry) AddWebsocketClient(id string, ws *websocket.Conn) {
+func (r *WebsocketClientRegistry) AddWebsocketClient(id string, ws *websocket.Conn) *WebsocketClientHolder {
 	r.wsClientMutex.Lock()
 	defer r.wsClientMutex.Unlock()
-	r.wsConns[id] = ws
-	r.sendMuxs[id] = &sync.Mutex{}
+	wsHolder := &WebsocketClientHolder{
+		id:      id,
+		ws:      ws,
+		start:   time.Now(),
+		sendMux: &sync.Mutex{},
+	}
+	r.clients[id] = wsHolder
+	return wsHolder
 }
 
 // RemoveWebsocketClient - 移除
 func (r *WebsocketClientRegistry) RemoveWebsocketClient(id string) {
 	r.wsClientMutex.Lock()
 	defer r.wsClientMutex.Unlock()
-	delete(r.wsConns, id)
-	delete(r.sendMuxs, id)
+	delete(r.clients, id)
 }
 
 // SendWebsocketMessage - 发送
 func (r *WebsocketClientRegistry) SendWebsocketMessage(id string, v interface{}) error {
 	r.wsClientMutex.RLock()
-	ws := r.wsConns[id]
-	lc := r.sendMuxs[id]
-	r.wsClientMutex.RUnlock()
+	wsHolder := r.clients[id]
 
-	if ws == nil {
-		return fmt.Errorf("%s not found client %s", r.Endpoint, id)
+	if wsHolder == nil {
+		return fmt.Errorf("%s websocket client(%s) not found", r.Endpoint, id)
 	}
 
+	ws := wsHolder.ws
+	lc := wsHolder.sendMux
+
+	r.wsClientMutex.RUnlock()
 	lc.Lock()
 	defer lc.Unlock()
+
+	wsHolder.msgTimestamp = time.Now().Unix()
 
 	return ws.WriteJSON(v)
 }
@@ -122,10 +147,13 @@ func (r *WebsocketClientRegistry) BroacastWebsocketMessage(v interface{}) error 
 	r.wsClientMutex.RLock()
 	defer r.wsClientMutex.RUnlock()
 
-	for k, ws := range r.wsConns {
-		lc := r.sendMuxs[k]
-		lc.Lock()
+	for k, c := range r.clients {
 
+		lc := c.sendMux
+		lc.Lock()
+		ws := c.ws
+
+		c.msgTimestamp = time.Now().Unix()
 		if err := ws.WriteJSON(v); err != nil {
 			log.Printf("%s websocket send client %s error: %v", r.Endpoint, k, err)
 		}
@@ -134,4 +162,29 @@ func (r *WebsocketClientRegistry) BroacastWebsocketMessage(v interface{}) error 
 	}
 
 	return nil
+}
+
+func (r *WebsocketClientRegistry) keepaliveWebsocketClients() {
+
+	if r.keepalive <= 0 {
+		return
+	}
+
+	c := time.Tick(time.Duration(r.keepalive) * time.Second)
+
+	for {
+		<-c
+		r.wsClientMutex.RLock()
+		nu := time.Now().Unix()
+		for k, c := range r.clients {
+			if (nu - c.msgTimestamp) >= int64(r.keepalive) {
+				if err := c.ws.PingHandler()("PING"); err != nil {
+					log.Printf("%s websocket client(%s) ping error: %v", k, c.id, err)
+				}
+			}
+		}
+		r.wsClientMutex.RUnlock()
+
+	}
+
 }

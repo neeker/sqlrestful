@@ -8,7 +8,6 @@
     <script>
       $(function() {
         var ws = new WebSocket("ws://localhost/echo");
-        
         ws.onerror = function(e) {
           $('#wsStatus').text("Error")
         }

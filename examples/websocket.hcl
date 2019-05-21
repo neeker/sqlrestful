@@ -29,6 +29,7 @@ echo {
 
   websocket {
     enabled = true
+    keepalive = 180
   }
 
   exec =<<JS

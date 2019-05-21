@@ -88,7 +88,7 @@ func startRestfulServer() error {
 
 		if len(macro.Exec) > 0 {
 			if macro.IsWebsocket() {
-				macro.websocket = NewWSClientRegistry(macro.name)
+				macro.websocket = NewWSClientRegistry(macro.name, macro.Websocket.Keepalive)
 			}
 			if len(macro.Methods) > 0 {
 				for _, method := range macro.Methods {
@@ -114,7 +114,7 @@ func startRestfulServer() error {
 
 		for method, childMacro := range macro.methodMacros {
 			if macro.IsWebsocket() {
-				childMacro.websocket = NewWSClientRegistry(childMacro.name)
+				childMacro.websocket = NewWSClientRegistry(childMacro.name, macro.Websocket.Keepalive)
 			}
 			switch {
 			case method == "GET":
