@@ -300,6 +300,39 @@ method {
   //执行并组合其他接口返回值，存在则忽略其他定义
   aggregate = [ ... ]
 
+  //定义Websocket接口
+  websocket {
+
+    //是否启用
+    enabled = true
+
+    //握手超时时间
+    handshakeTimeout = 60
+
+    //保持会话秒
+    keepalive = 25
+
+    //读取缓冲区大小
+    readBufferSize = 512
+
+    //写入缓冲区大小
+    writeBufferSize = 512
+
+    //是否默认启用压缩
+    compression = true
+
+    //子协议数组
+    subprotocols = [ ... ]
+
+    //允许的请求源正则表达式数组
+    origins = [...]
+  }
+
+  //映射的静态目录
+  dir = "/path/to/directory"
+
+  //映射的静态文件
+  file = "/path/to/file"
 }
 
 ```
@@ -396,11 +429,11 @@ method {
 
 #### `exec`
 
-接口实现脚本。
+服务接口实现脚本
 
 #### `transformer`
 
-接口实现脚本返回转换脚本。
+用于转换`exec`执行返回的数据，采用`js`脚本实现。
 
 #### `result`
 
@@ -413,4 +446,16 @@ method {
 #### `aggregate`
 
 组合其他接口定义执行返回。
+
+#### `websocket`
+
+定义接口是否为`websocket`服务，当启用了`websocket`服务时，接口定义的脚本在客户端消息到达时被执行。
+
+#### `dir`
+
+定义静态文件目录路由，存在时忽略其他配置，只返回目标文件夹中的静态文件。
+
+#### `file`
+
+定义静态文件路由，存在时忽略其他配置，只返回目标静态文件。
 

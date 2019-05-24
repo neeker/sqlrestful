@@ -56,6 +56,8 @@ test {
 | `$input.http_uri` | 当前请求URI地址 |
 | `$input.http_remote_addr` | 当前请求远程IP地址（或前置代理地址） |
 | `$input.http_real_ip` | 当前请求真实IP地址：<br>请求头`X-Forwarded-For`或`X-Real-IP`的值 |
+| `$input.data` | 消息对象，接口定义为监听消息队列或者`websocket`接口时 |
+| `$input.__clientid__` | 客户端ID，接口为`websocket`时 |
 | $name | 当前微服务实现宏名称 |
 | $stage | 宏`JS`所在过程名称：validators、authorizer、const、<br>transformer、bind、provider、exec、total |
 
@@ -70,6 +72,10 @@ test {
   - `log`
   - `exec_sql`
   - `exec_cmd`
+  - `emit_msg`
+  - `ws_broacast`
+  - `ws_send`
+  - `call_macro`
 
 ### `fetch`函数
 
@@ -206,5 +212,63 @@ emit_msg(dest, msg, headers{...})
 ```js
 (function(){
   var dirout = emit_msg("app.foo.bar", "test message queue")
+})()
+```
+
+### `ws_broacast`函数
+
+用于广播`websocket`消息。
+
+
+**函数原型**
+
+```js
+ws_broacast(endpoint, msg{...})
+```
+
+**使用示例**
+
+```js
+(function(){
+  ws_broacast("test", "test msg")
+})()
+```
+
+
+### `ws_send`函数
+
+用于发送`websocket`消息到指定的客户端。
+
+
+**函数原型**
+
+```js
+ws_send(endpoint, clientid, msg{...})
+```
+
+**使用示例**
+
+```js
+(function(){
+  ws_send("test", $input.__clientid__, "test msg")
+})()
+```
+
+### `call_macro`函数
+
+用于请求其他的定义实现。
+
+
+**函数原型**
+
+```js
+exec_macro(macro, input{...})
+```
+
+**使用示例**
+
+```js
+(function(){
+  exec_macro("input", {test:"test msg"})
 })()
 ```

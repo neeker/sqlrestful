@@ -65,6 +65,38 @@ root {
   }
 }
 
+//请求其他接口
+
+includes {
+
+  tags = [ "1.SQL测试接口" ]
+
+  desc = "JS执行其他返回"
+
+
+  //SQL参数绑定
+  bind {
+    offset = "$input.offset"
+    limit = "$input.limit"
+    express = "'%' + $input.express + '%'"
+  }
+
+  impl = "js"
+
+  exec = <<JS
+  (function(){
+    return call_macro("dataxs.get", {
+      offset: $input.offset,
+      limit: $input.limit,
+      express: $input.express == undefined ? "" : $input.express,
+    })
+  })()
+  JS
+
+  format = "origin"
+
+}
+
 //数据集接口
 dataxs {
 

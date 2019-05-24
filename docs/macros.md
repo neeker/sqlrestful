@@ -6,6 +6,11 @@
 
 `SQLRestful`设计上遵循`Restful`规范，采用路径、方法对应对象的不同操作语义，具体结构如下图所示：
 
-
-<img src="img/sqlrestful.png" width="99.5%" />
+<div style="line-height:0">
+<img src="img/sqlrestful1.png" width="100%" />
+<img src="img/sqlrestful2.png" width="100%" />
+<img src="img/sqlrestful3.png" width="100%" />
+<img src="img/sqlrestful4.png" width="100%" />
+<img src="img/sqlrestful5.png" width="100%" />
+</div>
 

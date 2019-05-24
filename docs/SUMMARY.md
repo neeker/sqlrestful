@@ -17,6 +17,7 @@
   * [5.4 使用`JWT`身份令牌请求其他接口](jwt.md)
   * [5.5 使用用户统一安全认证服务](xeai.md)
   * [5.6 监听消息队列与发送消息](mq.md)
-  * [5.7 以容器(`docker`)方式部署服务](custom.md)
+  * [5.7 实现websocket服务接口](websocket.md)
+  * [5.8 以容器(`docker`)方式部署服务](custom.md)
 * [6、数据库支持列表](db.md)
 * [7、消息协议支持列表](mqm.md)
