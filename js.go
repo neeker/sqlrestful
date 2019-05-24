@@ -53,6 +53,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("exec_cmd", jsExecCommandFunc)
 	vm.Set("log", log.Println)
 	vm.Set("emit_msg", jsExecEmitMessage)
+	vm.Set("call_macro", jsExecCallMacro)
 
 	vm.Set("ws_broacast", jsExecWebsocketBroacastMessage)
 	vm.Set("ws_send", jsExecWebsocketSendMessage)
@@ -393,6 +394,50 @@ func jsExecCommandFunc(cmdline string, args ...string) (interface{}, error) {
 	}
 
 	return outData, nil
+
+}
+
+// jsExecCallMacro - 调用其他定义
+func jsExecCallMacro(macroName string, args ...map[string]interface{}) (interface{}, error) {
+	var arg map[string]interface{}
+
+	if len(args) > 0 {
+		arg = args[0]
+	} else {
+		arg = map[string]interface{}{}
+	}
+
+	m := macrosManager.Get(macroName)
+
+	if m == nil {
+		return nil, fmt.Errorf("not found %s macro", macroName)
+	}
+
+	out, err := m.Call(nil, arg, nil)
+
+	if err != nil {
+		if m.Format == "nil" || m.Format == "origin" {
+			return nil, err
+		}
+		return map[string]interface{}{
+			"code":    500,
+			"message": err.Error(),
+		}, nil
+	}
+
+	if m.Format == "origin" {
+		return out, nil
+	}
+
+	if m.Format == "nil" {
+		return nil, nil
+	}
+
+	return map[string]interface{}{
+		"code":    0,
+		"message": "操作成功!",
+		"data":    out,
+	}, nil
 
 }
 

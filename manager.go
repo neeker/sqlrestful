@@ -262,7 +262,7 @@ func NewManager(configpath string) (*Manager, error) {
 					childm.Methods = []string{k}
 					childm.name = v.name + "." + strings.ToLower(k)
 					childm.Path = v.Path
-
+					manager.macros[childm.name] = childm
 					if len(childm.Provider) > 0 {
 						_, err := manager.compiled.New(k).Parse(childm.Provider)
 						if err != nil {
