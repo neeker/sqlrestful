@@ -71,8 +71,6 @@ type STOMPMessageSendProvider struct {
 	clock    *sync.RWMutex
 }
 
-var stompConn *stomp.Conn
-
 // NewSTOMP - 创建STOMP协议提供器
 func NewSTOMP(macro *Macro, config *MessageQueueConfig) (MessageQueueProvider, error) {
 	u, err := url.Parse(config.URL)
@@ -346,7 +344,7 @@ func stompHandleMessage(message <-chan *stomp.Message, c *STOMPMessageQueueProvi
 			}
 
 			if d.ShouldAck() {
-				stompConn.Ack(d)
+				c.conn.Ack(d)
 			}
 		}(d)
 
