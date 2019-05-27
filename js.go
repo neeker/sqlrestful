@@ -442,7 +442,7 @@ func jsExecCallMacro(macroName string, args ...map[string]interface{}) (interfac
 }
 
 // jsExecEmitMessage - 发送消息
-func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) (bool, error) {
+func jsExecEmitMessage(dest string, inMsg interface{}, args ...map[string]interface{}) (bool, error) {
 	var arg map[string]interface{}
 
 	if len(args) > 0 {
@@ -455,6 +455,16 @@ func jsExecEmitMessage(dest string, msg string, args ...map[string]interface{}) 
 
 	if err != nil {
 		return false, err
+	}
+
+	var msg string
+
+	switch inMsg.(type) {
+	case string:
+		msg = inMsg.(string)
+	default:
+		msgBytes, _ := json.Marshal(inMsg)
+		msg = string(msgBytes)
 	}
 
 	if err := sender.EmitMessage(dest, msg, arg); err != nil {
