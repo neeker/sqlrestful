@@ -198,11 +198,7 @@ func (c *STOMPMessageQueueProvider) Consume() error {
 	c.tries++
 
 	if err := c.connect(); err != nil {
-		if strings.Contains(err.Error(), "password is invalid") {
-			return err
-		}
-
-		if c.failover {
+		if c.failover && c.tries > 1 {
 			log.Printf("%s consume %s(%s) connect error: %+v", c.macro.name, queueType, queueName, err)
 			go func() {
 				if *flagDebug > 0 {
