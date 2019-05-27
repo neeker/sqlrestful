@@ -1185,7 +1185,7 @@ func (m *Macro) MsgCall(input map[string]interface{}) (bool, interface{}, map[st
 		vm := initJSVM(map[string]interface{}{
 			"$input": input,
 			"$name":  m.name,
-			"$stage": "const",
+			"$stage": "reply",
 		})
 		for k, src := range m.Reply.Header {
 			if *flagDebug > 2 {
