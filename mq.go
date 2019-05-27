@@ -33,6 +33,14 @@ import (
 	"sync"
 )
 
+// EmitMessage - 发送信息
+type EmitMessage struct {
+	dest  string                 //目标队列
+	msg   string                 //消息
+	opts  map[string]interface{} //参数
+	tries int                    //重发次数
+}
+
 // MessageReplyer - 消息应答
 type MessageReplyer struct {
 	Topic  string            //主题名
@@ -133,8 +141,8 @@ func (c *MessageQueueConfig) MessageSendProvider() (MessageSendProvider, error) 
 	var err error
 
 	switch {
-	//case strings.ToLower(c.Driver) == "amqp":
-	//c.sender, err = NewAMQPSender(c)
+	case strings.ToLower(c.Driver) == "amqp":
+		c.sender, err = NewAMQPSender(c)
 	case strings.ToLower(c.Driver) == "stomp":
 		c.sender, err = NewSTOMPSender(c)
 	default:
