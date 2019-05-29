@@ -94,12 +94,32 @@ func NewAMQP(m *Macro, config *MessageQueueConfig) (MessageQueueProvider, error)
 	return p, nil
 }
 
+// ExchangeName - 消息队列名称
+func (c *AMQPMessageQueueProvider) ExchangeName() string {
+	exchangeName := c.macro.Consume["exchange"]
+	if exchangeName != "" {
+		return exchangeName
+	}
+	return "default"
+}
+
+// BindKey - 消息队列名称
+func (c *AMQPMessageQueueProvider) BindKey() string {
+	bindKey := c.macro.Consume["key"]
+	if bindKey != "" {
+		return bindKey
+	}
+	return c.QueueName()
+}
+
 // QueueName - 消息队列名称
 func (c *AMQPMessageQueueProvider) QueueName() string {
-	topicName := c.macro.Consume["topic"]
 	queueName := c.macro.Consume["queue"]
-	if topicName != "" {
-		queueName = topicName
+	if queueName == "" {
+		queueName = c.macro.Consume["topic"]
+		if queueName == "" {
+			queueName = c.macro.Consume["name"]
+		}
 	}
 	return queueName
 }
@@ -183,15 +203,9 @@ func (c *AMQPMessageQueueProvider) Consume() error {
 
 	args := c.macro.Consume
 
-	exchangeName := args["name"]
-	if exchangeName == "" {
-		exchangeName = "default"
-	}
+	exchangeName := c.ExchangeName()
 
-	bindKey := args["key"]
-	if bindKey == "" {
-		bindKey = queueName
-	}
+	bindKey := c.BindKey()
 
 	durable := args["durable"] == "" || strings.ToLower(args["durable"]) == "true"
 	autoDelete := args["delete"] != "" && strings.ToLower(args["delete"]) == "auto"
@@ -238,7 +252,7 @@ func (c *AMQPMessageQueueProvider) Consume() error {
 	)
 
 	if err != nil {
-		if c.failover {
+		if c.failover && c.tries > 1 {
 			log.Printf("%s consume %s(%s) at queue error: %+v", c.macro.name, queueName, queueType, err)
 			go func() {
 				if *flagDebug > 0 {
@@ -259,7 +273,7 @@ func (c *AMQPMessageQueueProvider) Consume() error {
 		noWait,       // noWait
 		nil,          // arguments
 	); err != nil {
-		if c.failover {
+		if c.failover && c.tries > 1 {
 			log.Printf("%s consume %s(%s) at bind error: %+v", c.macro.name, queueName, queueType, err)
 			go func() {
 				if *flagDebug > 0 {
@@ -284,7 +298,7 @@ func (c *AMQPMessageQueueProvider) Consume() error {
 	)
 
 	if err != nil {
-		if c.failover {
+		if c.failover && c.tries > 1 {
 			log.Printf("%s consume %s(%s) at subsctribe error: %+v", c.macro.name, queueName, queueType, err)
 			go func() {
 				if *flagDebug > 0 {
@@ -496,8 +510,8 @@ func (c *AMQPMessageSendProvider) publishMessage(msg *AMQPEmitMessage) error {
 
 	var exchangeName string
 
-	if args["name"] != nil {
-		exchangeName = fmt.Sprintf("%s", args["name"])
+	if args["exchange"] != nil {
+		exchangeName = fmt.Sprintf("%s", args["exchange"])
 	}
 
 	if exchangeName == "" {

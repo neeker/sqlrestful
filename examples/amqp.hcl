@@ -3,7 +3,7 @@ _meta {
 
     driver = "amqp"
 
-    url = "amqp://guest:guest@192.168.1.201:5672/"
+    url = "amqp://guest:guest@localhost:5672/"
 
   }
 }
@@ -13,6 +13,8 @@ _consumer {
   consume {
 
     queue = "app.sqlrestful.test.amqp"
+  
+    exchange = "test"
 
   }
 
@@ -41,11 +43,9 @@ sender {
   exec = <<JS
 
   (function(){
-    var msg = {
-      create_time: new Date(),
-      message: $input.message
-    }
-    emit_msg('app.sqlrestful.test.amqp', msg)
+    emit_msg('app.sqlrestful.test.amqp', $input.message, {
+      exchange: 'test'
+    })
   })()
 
   JS
