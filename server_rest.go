@@ -27,6 +27,8 @@
 package main
 
 import (
+	"log"
+	"net/url"
 	"strings"
 
 	"github.com/labstack/echo"
@@ -86,6 +88,23 @@ func startRestfulServer() error {
 			continue
 		}
 
+		if macro.IsProxy() {
+			proxyTargets := []*middleware.ProxyTarget{}
+			for _, proxyAddress := range macro.Proxy {
+				u, err := url.Parse(proxyAddress)
+				if err != nil {
+					log.Printf("%s defined proxy(%s) was not URL!", macro.name, proxyAddress)
+					continue
+				}
+				proxyTargets = append(proxyTargets, &middleware.ProxyTarget{
+					URL: u,
+				})
+			}
+			g := e.Group(routeBase + macro.Path)
+			g.Use(middleware.Proxy(middleware.NewRoundRobinBalancer(proxyTargets)))
+			continue
+		}
+
 		if len(macro.Exec) > 0 {
 			if macro.IsWebsocket() {
 				macro.websocket = NewWSClientRegistry(macro.name, macro.Websocket.Keepalive)
@@ -130,6 +149,10 @@ func startRestfulServer() error {
 			}
 		}
 	}
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
 
 	echoServer = e
 

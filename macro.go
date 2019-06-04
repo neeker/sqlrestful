@@ -1240,6 +1240,10 @@ func (m *Macro) IsFile() bool {
 	return m.File != ""
 }
 
+func (m *Macro) IsProxy() bool {
+	return m.Proxy != nil && len(m.Proxy) > 0
+}
+
 // execWebsocket - 处理Websocket
 func (m *Macro) execWebsocket(c echo.Context, input map[string]interface{}) error {
 	upgrader := websocket.Upgrader{}
