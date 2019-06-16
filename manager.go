@@ -248,6 +248,10 @@ func NewManager(configpath string) (*Manager, error) {
 					v.Path = "/" + v.Path
 				}
 
+				if v.Path == "/" {
+					v.Path = ""
+				}
+
 				fixMacro(v)
 
 				if v.Const != nil {
