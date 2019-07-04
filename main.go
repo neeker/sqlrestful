@@ -127,13 +127,21 @@ func main() {
 		}
 	})()
 
+	go (func() {
+		if err := startUDPListener(); err != nil {
+			stopRestfulServer()
+			stopMacrosConsumeMessage()
+		}
+	})()
+
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Kill, os.Interrupt)
 	go func() {
 		<-c
+		stopUDPListener()
+		stopRestfulServer()
 		stopMacrosConsumeMessage()
 		stopMessageSendProvider()
-		stopRestfulServer()
 	}()
 
 	rerr := <-err

@@ -32,6 +32,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -72,6 +73,12 @@ type WebsocketConfig struct {
 	Keepalive        int      //keepalive秒
 }
 
+// UDPListener - UDP监听定义
+type UDPListener struct {
+	IP   string //地址
+	Port int    //端口
+}
+
 // Macro - a macro configuration
 type Macro struct {
 	Brand        string                       //起始标记
@@ -104,6 +111,7 @@ type Macro struct {
 	Dir          string                       //静态目录
 	File         string                       //静态文件
 	Tags         []string                     //定义标签
+	UDP          *UDPListener                 //监听UDP
 	Model        map[string]map[string]string //应答模型
 	Proxy        []string                     //前置代理
 	Summary      string                       //接口概述 Desc优先
@@ -125,6 +133,7 @@ type Macro struct {
 	consts       map[string]interface{}       //常量表
 	mqp          MessageQueueProvider         //提供器实现
 	websocket    *WebsocketClientRegistry     //客户端注册表
+	udpconn      *net.UDPConn                 //UDP连接
 }
 
 // Call - executes the macro
@@ -1240,6 +1249,7 @@ func (m *Macro) IsFile() bool {
 	return m.File != ""
 }
 
+// IsProxy - 判断是否代理
 func (m *Macro) IsProxy() bool {
 	return m.Proxy != nil && len(m.Proxy) > 0
 }

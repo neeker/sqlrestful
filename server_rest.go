@@ -155,7 +155,6 @@ func startRestfulServer() error {
 	}))
 
 	echoServer = e
-
 	return e.Start(*flagRESTListenAddr)
 }
 

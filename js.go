@@ -31,7 +31,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -54,6 +56,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("log", log.Println)
 	vm.Set("emit_msg", jsExecEmitMessage)
 	vm.Set("call_macro", jsExecCallMacro)
+	vm.Set("send_udp", jsExecSendUDP)
 
 	vm.Set("ws_broacast", jsExecWebsocketBroacastMessage)
 	vm.Set("ws_send", jsExecWebsocketSendMessage)
@@ -504,4 +507,47 @@ func jsExecWebsocketSendMessage(ch string, cid string, args ...interface{}) (boo
 	}
 	err := r.SendWebsocketMessage(cid, msg)
 	return err == nil, err
+}
+
+// jsExecSendUDP - 发送UDP
+func jsExecSendUDP(rAddr string, msg string, args ...interface{}) (outMsg string, err error) {
+	var recvData bool
+	if len(args) == 1 {
+		recvData = args[0] == true
+	}
+	addrs := strings.Split(rAddr, ":")
+	if len(addrs) != 2 {
+		return "", fmt.Errorf("rAddr must be ip:port, not %s", rAddr)
+	}
+	port, err := strconv.Atoi(addrs[1])
+	if err != nil {
+		return "", err
+	}
+	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+		IP:   net.ParseIP(addrs[0]),
+		Port: port,
+	})
+
+	defer socket.Close()
+
+	_, err = socket.Write([]byte(msg))
+
+	if err != nil {
+		return "", err
+	}
+
+	if !recvData {
+		return "", nil
+	}
+
+	outData := make([]byte, 8192)
+	outSiz, _, err := socket.ReadFromUDP(outData)
+
+	if err != nil {
+		return "", err
+	}
+	outMsg = string(outData[:outSiz])
+
+	return outMsg, err
+
 }
