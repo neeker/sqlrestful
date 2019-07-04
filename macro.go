@@ -77,6 +77,7 @@ type WebsocketConfig struct {
 type UDPListener struct {
 	IP   string //地址
 	Port int    //端口
+	Buff int    //缓存区大小
 }
 
 // Macro - a macro configuration

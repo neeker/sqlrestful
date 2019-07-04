@@ -511,10 +511,17 @@ func jsExecWebsocketSendMessage(ch string, cid string, args ...interface{}) (boo
 
 // jsExecSendUDP - 发送UDP
 func jsExecSendUDP(rAddr string, msg string, args ...interface{}) (outMsg string, err error) {
-	var recvData bool
-	if len(args) == 1 {
+	recvData := false
+	bufSiz := 8192
+
+	if len(args) >= 1 {
 		recvData = args[0] == true
 	}
+
+	if len(args) >= 2 {
+		bufSiz = args[1].(int)
+	}
+
 	addrs := strings.Split(rAddr, ":")
 	if len(addrs) != 2 {
 		return "", fmt.Errorf("rAddr must be ip:port, not %s", rAddr)
@@ -540,7 +547,7 @@ func jsExecSendUDP(rAddr string, msg string, args ...interface{}) (outMsg string
 		return "", nil
 	}
 
-	outData := make([]byte, 8192)
+	outData := make([]byte, bufSiz)
 	outSiz, _, err := socket.ReadFromUDP(outData)
 
 	if err != nil {

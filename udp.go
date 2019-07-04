@@ -99,8 +99,14 @@ func (m *Macro) StartListenUDP() error {
 
 	m.udpconn = socket
 
+	bufSiz := m.UDP.Buff
+
+	if m.UDP.Buff <= 0 {
+		bufSiz = 8192
+	}
+
 	for {
-		data := make([]byte, 8192)
+		data := make([]byte, bufSiz)
 		dataSiz, rAddr, err := socket.ReadFromUDP(data)
 		if err != nil {
 			if *flagDebug > 2 {
