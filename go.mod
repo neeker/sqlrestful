@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/kardianos/service v1.0.0
 	github.com/kshvakov/clickhouse v1.3.5
 	github.com/labstack/echo v3.3.5+incompatible
 	github.com/labstack/gommon v0.2.8 // indirect

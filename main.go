@@ -35,6 +35,45 @@ import (
 	"strings"
 )
 
+// normalMain - 实现main
+func normalMain() {
+	err := make(chan error)
+
+	go (func() {
+		err <- startRestfulServer()
+	})()
+
+	go (func() {
+		if err := startMacrosConsumeMessage(); err != nil {
+			fmt.Printf("start consume message error: %s\n", err.Error())
+			stopRestfulServer()
+		}
+	})()
+
+	go (func() {
+		if err := startUDPListener(); err != nil {
+			stopRestfulServer()
+			stopMacrosConsumeMessage()
+		}
+	})()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Kill, os.Interrupt)
+	go func() {
+		<-c
+		stopUDPListener()
+		stopRestfulServer()
+		stopMacrosConsumeMessage()
+		stopMessageSendProvider()
+	}()
+
+	rerr := <-err
+	if rerr != nil {
+		fmt.Printf("%s\n", rerr.Error())
+	}
+
+}
+
 func main() {
 
 	listenPortStart := strings.LastIndex(*flagRESTListenAddr, ":")
@@ -113,40 +152,6 @@ func main() {
 
 	fmt.Println("")
 	fmt.Println("")
-
-	err := make(chan error)
-
-	go (func() {
-		err <- startRestfulServer()
-	})()
-
-	go (func() {
-		if err := startMacrosConsumeMessage(); err != nil {
-			fmt.Printf("start consume message error: %s\n", err.Error())
-			stopRestfulServer()
-		}
-	})()
-
-	go (func() {
-		if err := startUDPListener(); err != nil {
-			stopRestfulServer()
-			stopMacrosConsumeMessage()
-		}
-	})()
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Kill, os.Interrupt)
-	go func() {
-		<-c
-		stopUDPListener()
-		stopRestfulServer()
-		stopMacrosConsumeMessage()
-		stopMessageSendProvider()
-	}()
-
-	rerr := <-err
-	if rerr != nil {
-		fmt.Printf("%s\n", rerr.Error())
-	}
+	serviceMain()
 
 }

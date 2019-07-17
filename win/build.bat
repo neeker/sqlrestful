@@ -53,6 +53,8 @@ SET BUILD_TAGS="windows"
 
 SET GOOS=windows
 
+set GOPROXY=https://goproxy.io
+
 go build --tags %BUILD_TAGS%
 
 cd %old_pwd%

@@ -2,6 +2,8 @@ FROM gitlab.snz1.cn:2008/go/cgobuild:v2.0
 
 ARG GOBUILD_TAGS
 
+ENV GOPROXY=https://goproxy.io
+
 ENV TZ=Asia/Shanghai
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
