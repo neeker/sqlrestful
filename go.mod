@@ -22,6 +22,7 @@ require (
 	github.com/labstack/echo v3.3.5+incompatible
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/lib/pq v1.0.0
+	github.com/liberalman/timer_server v0.0.0-20160613051921-962d20e51282
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-oci8 v0.0.0-20190410054007-e00f23025626

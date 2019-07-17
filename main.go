@@ -40,6 +40,7 @@ func normalMain() {
 	err := make(chan error)
 
 	go (func() {
+		startTimers()
 		err <- startRestfulServer()
 	})()
 

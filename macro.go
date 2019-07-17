@@ -61,6 +61,11 @@ type Author struct {
 	URL   string //URL
 }
 
+// TimerDefine - 定时器定义
+type TimerDefine struct {
+	Inteval int //间隔秒
+}
+
 // WebsocketConfig - websocket配置
 type WebsocketConfig struct {
 	Enabled          bool     //是否启用
@@ -109,6 +114,7 @@ type Macro struct {
 	Aggregate    []string                     //组合实现
 	Transformer  string                       //转换器
 	Websocket    *WebsocketConfig             //Websocket配置
+	Timer        *TimerDefine                 //定时器定义
 	Dir          string                       //静态目录
 	File         string                       //静态文件
 	Tags         []string                     //定义标签
@@ -1176,6 +1182,15 @@ func (m *Macro) ReplyDestName() string {
 // ReplyShouldAck - 是否需要
 func (m *Macro) ReplyShouldAck() bool {
 	return strings.ToLower(m.Reply.Ack) != "auto"
+}
+
+// TimerCall - 定时调用
+func (m Macro) TimerCall() error {
+	_, err := m.Call(nil, map[string]interface{}{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // MsgCall - 执行消息

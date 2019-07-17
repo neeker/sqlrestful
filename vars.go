@@ -83,7 +83,7 @@ var (
 )
 
 const (
-	serverVersion = "v0.19ex"
+	serverVersion = "v0.20ex"
 	serverBrand   = `
 	
    ____   ___  _     ____           _    __       _
