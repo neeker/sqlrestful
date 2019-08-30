@@ -26,5 +26,5 @@ RUN rm -rf /tmp/sqlrestful
 
 WORKDIR /sqlrestful
 
-ENTRYPOINT [ "sqlrestful" ]
+CMD [ "sqlrestful" ]
 
