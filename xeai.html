@@ -1,0 +1,597 @@
+
+<!DOCTYPE HTML>
+<html lang="zh-hans" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>5.5 使用用户统一安全认证服务 · SQLRestful</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search-plus/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search-pro/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-terminal/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-feathers-versions/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="mq.html" />
+    
+    
+    <link rel="prev" href="jwt.html" />
+    
+
+    
+    <link rel="stylesheet" href="gitbook/gitbook-plugin-chart/c3/c3.min.css">
+    <script src="gitbook/gitbook-plugin-chart/c3/d3.min.js"></script>
+    <script src="gitbook/gitbook-plugin-chart/c3/c3.min.js"></script>
+    
+
+    <script src="gitbook/gitbook-plugin-graph/d3.min.js"></script>
+    <script src="gitbook/gitbook-plugin-graph/function-plot.js"></script>    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="输入并搜索" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    0、SQLRestful概要说明
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="origin.html">
+            
+                <a href="origin.html">
+            
+                    
+                    1、SQLRestful设计初衷
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="start.html">
+            
+                <a href="start.html">
+            
+                    
+                    2、SQLRestful入门示例
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" data-path="hcl.html">
+            
+                <a href="hcl.html">
+            
+                    
+                    3、HCL配置语言入门
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="macros.html">
+            
+                <a href="macros.html">
+            
+                    
+                    4、SQLRestful语法结构
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="macro.html">
+            
+                <a href="macro.html">
+            
+                    
+                    4.1、基本语法结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="ret.html">
+            
+                <a href="ret.html">
+            
+                    
+                    4.2、接口返回数据格式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.3" data-path="sql.html">
+            
+                <a href="sql.html">
+            
+                    
+                    4.3、SQL参数绑定
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.4" data-path="mul.html">
+            
+                <a href="mul.html">
+            
+                    
+                    4.4、执行多段SQL
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.5" data-path="js.html">
+            
+                <a href="js.html">
+            
+                    
+                    4.5、使用JavaScript脚本
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" data-path="professor.html">
+            
+                <a href="professor.html">
+            
+                    
+                    5、SQLRestful进阶指南
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.6.1" data-path="sqlx.html">
+            
+                <a href="sqlx.html">
+            
+                    
+                    5.1 根据请求参数实现条件分支
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.2" data-path="jsx.html">
+            
+                <a href="jsx.html">
+            
+                    
+                    5.2 使用JavaScript实现接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.3" data-path="cmd.html">
+            
+                <a href="cmd.html">
+            
+                    
+                    5.3 使用外部SHELL命令实现接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.4" data-path="jwt.html">
+            
+                <a href="jwt.html">
+            
+                    
+                    5.4 使用JWT身份令牌请求其他接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.6.5" data-path="xeai.html">
+            
+                <a href="xeai.html">
+            
+                    
+                    5.5 使用用户统一安全认证服务
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.6" data-path="mq.html">
+            
+                <a href="mq.html">
+            
+                    
+                    5.6 监听消息队列与发送消息
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.7" data-path="websocket.html">
+            
+                <a href="websocket.html">
+            
+                    
+                    5.7 实现websocket服务接口
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.8" data-path="custom.html">
+            
+                <a href="custom.html">
+            
+                    
+                    5.8 以容器(docker)方式部署服务
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="db.html">
+            
+                <a href="db.html">
+            
+                    
+                    6、数据库支持列表
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8" data-path="mqm.html">
+            
+                <a href="mqm.html">
+            
+                    
+                    7、消息协议支持列表
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            本书使用 GitBook 发布
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >5.5 使用用户统一安全认证服务</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="&#x4F7F;&#x7528;&#x7528;&#x6237;&#x7EDF;&#x4E00;&#x5B89;&#x5168;&#x8BA4;&#x8BC1;&#x670D;&#x52A1;">&#x4F7F;&#x7528;&#x7528;&#x6237;&#x7EDF;&#x4E00;&#x5B89;&#x5168;&#x8BA4;&#x8BC1;&#x670D;&#x52A1;</h1>
+<h2 id="&#x5E94;&#x7528;&#x573A;&#x666F;">&#x5E94;&#x7528;&#x573A;&#x666F;</h2>
+<p>&#x5982;&#x679C;&#x6211;&#x4EEC;&#x7684;&#x63A5;&#x53E3;&#x9762;&#x5411;&#x7528;&#x6237;&#x524D;&#x7AEF;&#xFF0C;&#x6B64;&#x65F6;&#x5FC5;&#x7136;&#x6D89;&#x53CA;&#x7528;&#x6237;&#x8EAB;&#x4EFD;&#x9A8C;&#x8BC1;&#x53CA;&#x6743;&#x9650;&#x9A8C;&#x8BC1;&#x95EE;&#x9898;&#xFF0C;&#x867D;&#x7136;&#x901A;&#x8FC7;<code>authorizer</code>&#x914D;&#x7F6E;&#x9879;&#x53EF;&#x4EE5;&#x4F7F;&#x7528;<code>JavaScript</code>&#x811A;&#x672C;&#x6765;&#x5B9E;&#x73B0;&#x7528;&#x6237;&#x8EAB;&#x4EFD;&#x9A8C;&#x8BC1;&#x53CA;&#x6743;&#x9650;&#x9A8C;&#x8BC1;&#xFF0C;&#x4F46;&#x603B;&#x7684;&#x6765;&#x8BF4;&#x5B9E;&#x73B0;&#x8FD8;&#x662F;&#x7A0D;&#x663E;&#x7E41;&#x7410;&#x4E86;&#x3002;</p>
+<p>&#x6B64;&#x65F6;&#x6211;&#x4EEC;&#x53EF;&#x4EE5;&#x901A;&#x8FC7;<code>security</code>&#x914D;&#x7F6E;&#x9879;&#x6765;&#x5BF9;&#x63A5;&#x53E3;&#x5B9A;&#x4E49;&#x7528;&#x6237;&#x53CA;&#x6743;&#x9650;&#x89D2;&#x8272;&#x8BBF;&#x95EE;&#x63A7;&#x5236;&#x3002;</p>
+<blockquote>
+<p>&#x6CE8;&#xFF1A;security&#x914D;&#x7F6E;&#x9879;&#x9700;&#x8981;<a href="https://snz1.cn/k8s/javadoc/sc-client-api/" target="_blank">&#x7528;&#x6237;&#x7EDF;&#x4E00;&#x5B89;&#x5168;&#x8BA4;&#x8BC1;&#x670D;&#x52A1;</a>&#x7EC4;&#x4EF6;&#x652F;&#x6301;&#x3002;</p>
+</blockquote>
+<h2 id="&#x914D;&#x7F6E;&#x65B9;&#x6CD5;">&#x914D;&#x7F6E;&#x65B9;&#x6CD5;</h2>
+<p><code>security</code>&#x53EF;&#x4EE5;&#x9488;&#x5BF9;&#x63A5;&#x53E3;&#x914D;&#x7F6E;&#x4EE5;&#x4E0B;&#x9A8C;&#x8BC1;&#x65B9;&#x5F0F;&#xFF1A;</p>
+<ul>
+<li>&#x53EF;&#x4EE5;&#x8BBF;&#x95EE;&#x63A5;&#x53E3;&#x7684;&#x767B;&#x5F55;&#x7528;&#x6237;&#x6216;&#x89D2;&#x8272;</li>
+<li>&#x4E0D;&#x80FD;&#x8BBF;&#x95EE;&#x63A5;&#x53E3;&#x7684;&#x767B;&#x5F55;&#x7528;&#x6237;&#x6216;&#x89D2;&#x8272;</li>
+</ul>
+<pre><code>
+  security {
+
+    //&#x662F;&#x5426;&#x5141;&#x8BB8;&#x533F;&#x540D;&#x8BBF;&#x95EE;&#xFF0C;&#x4E3A;true&#x65F6;&#x4E0D;&#x5224;&#x5B9A;&#x7528;&#x6237;&#x8EAB;&#x4EFD;
+    anonymous = false
+
+    //&#x7528;&#x6237;&#x6240;&#x5C5E;&#x7EC4;&#x7EC7;&#x57DF;&#xFF1A;&#x53C2;&#x89C1;&lt;https://snz1.cn/k8s/javadoc/sc-client-api/doc/org/scope.html&gt;
+    scope = &quot;employee&quot;
+
+    //&#x5224;&#x5B9A;&#x89D2;&#x8272;&#x5217;&#x8868;
+    roles = [ &quot;ADMIN&quot; ]
+
+    //&#x5224;&#x5B9A;&#x7528;&#x6237;&#x5217;&#x8868;
+    users = [ &quot;neeker&quot; ]
+
+    //&#x89D2;&#x8272;&#x6216;&#x7528;&#x6237;&#x5224;&#x5B9A;&#x7B56;&#x7565;&#xFF1A;
+    //      &#x4E3A;include&#x65F6;&#x8868;&#x793A;&#x8BF7;&#x6C42;&#x7528;&#x6237;&#x5FC5;&#x987B;&#x5305;&#x542B;roles&#x4E2D;&#x5B9A;&#x4E49;&#x7684;&#x89D2;&#x8272;&#x3001;&#x7528;&#x6237;&#x5FC5;&#x987B;&#x5728;users&#x5B9A;&#x4E49;&#x7684;&#x5217;&#x8868;&#x4E2D;
+    //      &#x4E3A;exclude&#x65F6;&#x8868;&#x793A;&#x8BF7;&#x6C42;&#x7528;&#x6237;&#x4E0D;&#x80FD;&#x662F;roles&#x5B9A;&#x4E49;&#x7684;&#x89D2;&#x8272;&#x3001;&#x7528;&#x6237;&#x4E0D;&#x80FD;&#x518D;users&#x5B9A;&#x4E49;&#x7684;&#x5217;&#x8868;&#x4E2D;
+    //&#x6761;&#x4EF6;&#x4E0D;&#x6EE1;&#x8DB3;&#x5219;&#x8FD4;&#x56DE;403&#x5E94;&#x7B54;
+    policy = &quot;allow&quot;
+
+  }
+</code></pre><h2 id="&#x8FD0;&#x884C;&#x914D;&#x7F6E;">&#x8FD0;&#x884C;&#x914D;&#x7F6E;</h2>
+<p>&#x5F00;&#x542F;<code>security</code>&#x914D;&#x7F6E;&#x529F;&#x80FD;&#x9700;&#x8981;&#x5728;&#x542F;&#x52A8;&#x547D;&#x4EE4;&#x884C;&#x4E2D;&#x52A0;&#x5165;<code>uumapi</code>&#x3001;<code>useridtype</code>&#x3001;<code>userscope</code>&#x53C2;&#x6570;&#xFF1A;</p>
+<ul>
+<li><code>uumapi</code>&#x8868;&#x793A;<a href="https://snz1.cn/k8s/javadoc/sc-client-api/" target="_blank">&#x7528;&#x6237;&#x7EDF;&#x4E00;&#x5B89;&#x5168;&#x8BA4;&#x8BC1;&#x670D;&#x52A1;</a>&#x5730;&#x5740;</li>
+<li><code>useridtype</code>&#x8868;&#x793A;&#x901A;&#x8FC7;&#x8BF7;&#x6C42;&#x5934;&#x83B7;&#x53D6;&#x5230;&#x7684;&#x7528;&#x6237;&#x8EAB;&#x4EFD;&#x6807;&#x8BC6;&#x7C7B;&#x578B;&#xFF08;&#x5305;&#x62EC;&#xFF1A;id&#x3001;uname&#x7B49;&#xFF09;</li>
+<li><code>userscope</code>&#x8868;&#x793A;&#x767B;&#x5F55;&#x7528;&#x6237;&#x6240;&#x5728;&#x7684;&#x7EC4;&#x7EC7;&#x57DF;&#x4EE3;&#x7801;&#xFF08;&#x767B;&#x5F55;&#x7684;&#x7528;&#x6237;&#x5FC5;&#x987B;&#x5728;&#x8BE5;&#x7EC4;&#x7EC7;&#x57DF;&#x4E0B;&#x624D;&#x80FD;&#x8BBF;&#x95EE;&#xFF09;</li>
+</ul>
+<p><div id="page-footer" class="localized-footer"><hr><p><em>2019-2010 &#xA9; &#x7248;&#x6743;&#x6240;&#x6709;</em></p>
+</div></p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="jwt.html" class="navigation navigation-prev " aria-label="Previous page: 5.4 使用JWT身份令牌请求其他接口">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="mq.html" class="navigation navigation-next " aria-label="Next page: 5.6 监听消息队列与发送消息">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"5.5 使用用户统一安全认证服务","level":"1.6.5","depth":2,"next":{"title":"5.6 监听消息队列与发送消息","level":"1.6.6","depth":2,"path":"mq.md","ref":"mq.md","articles":[]},"previous":{"title":"5.4 使用JWT身份令牌请求其他接口","level":"1.6.4","depth":2,"path":"jwt.md","ref":"jwt.md","articles":[]},"dir":"ltr"},"config":{"plugins":["-lunr","-search","-highlight","-livereload","search-plus@^0.0.11","simple-page-toc@^0.1.1","localized-footer","edit-link","search-pro@^2.0.2","include-codeblock@^3.0.2","-sharing","sharing-plus@^0.0.2","graph@^0.1.0","chart@^0.2.0","terminal@^0.3.2","sitemap-general@^0.1.1","feathers-versions"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"simple-page-toc":{"maxDepth":3,"skipFirstH1":true},"search-pro":{},"sharing-plus":{"qq":false,"all":["facebook","google","twitter","instapaper","linkedin","pocket","stumbleupon"],"douban":false,"facebook":true,"weibo":false,"instapaper":false,"whatsapp":false,"hatenaBookmark":false,"twitter":true,"messenger":false,"line":false,"vk":false,"pocket":true,"google":false,"viber":false,"stumbleupon":false,"qzone":false,"linkedin":false},"localized-footer":{"filename":"FOOTER.md","hline":true},"graph":{},"sitemap-general":{"prefix":"https://github.com/neeker/sqlrestful/tree/master/docs"},"fontsettings":{"theme":"white","family":"sans","size":2},"feathers-versions":{},"versions":{"gitbookConfigURL":"https://github.com/neeker/sqlrestful/tree/master/docs/book.json","options":[{"value":"https://github.com/neeker/sqlrestful/tree/master/docs","text":"v0.9ex"}]},"include-codeblock":{"check":false,"edit":true,"fixlang":false,"lang":"","template":"ace","theme":"chrome","unindent":true},"sharing":{"qq":true,"all":["douban","qq","qzone","weibo"],"douban":true,"facebook":false,"weibo":true,"instapaper":false,"whatsapp":false,"hatenaBookmark":false,"twitter":false,"messenger":false,"line":false,"vk":false,"pocket":false,"google":false,"viber":false,"stumbleupon":false,"qzone":true,"linkedin":false},"terminal":{"copyButtons":true,"fade":false,"style":"flat"},"edit-link":{"label":"编辑文档","base":"https://github.com/neeker/sqlrestful/tree/master/docs"},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"chart":{"type":"c3"},"search-plus":{}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"SQLRestful","language":"zh-hans","links":{"sidebar":{}},"gitbook":"3.2.2","description":"使用SQL与Javascript的云原生开发工具","theme-default":{"showLevel":true}},"file":{"path":"xeai.md","mtime":"2019-11-28T09:58:16.877Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2019-11-28T09:59:43.558Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-search-plus/jquery.mark.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search-plus/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-edit-link/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search-pro/jquery.mark.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search-pro/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing-plus/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-terminal/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-feathers-versions/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

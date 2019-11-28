@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/origin.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/start.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/hcl.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/macros.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/macro.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/ret.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/sql.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/mul.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/js.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/professor.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/sqlx.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/jsx.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/cmd.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/jwt.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/xeai.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/mq.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/websocket.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/custom.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/db.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+<url> <loc>https://github.com/neeker/sqlrestful/tree/master/mqm.html</loc> <changefreq>weekly</changefreq> <priority>0.5</priority> </url>
+</urlset>
