@@ -61,7 +61,7 @@ func startRestfulServer() error {
 	if macrosManager.IsSwaggerEnabled() {
 		//启用swagger-ui的webJar
 		e.Static(routeBase+"/webjars", "/swagger2/webjars")
-		e.File(routeBase+"/swagger-ui.html", "/swagger2/swagger-ui.html")
+		e.File(routeBase+"/doc.html", "/swagger2/doc.html")
 		e.File(routeBase+"/swagger-resources/configuration/ui", "/swagger2/ui.json")
 		e.File(routeBase+"/swagger-resources", "/swagger2/swagger-resources.json")
 		e.File(routeBase+"/swagger-resources/configuration/security", "/swagger2/security.json")

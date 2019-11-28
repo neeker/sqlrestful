@@ -363,7 +363,7 @@ func getTagsAndRestfulPaths() ([]map[string]interface{}, map[string]interface{})
 			},
 		}
 
-		pathsMap["/swagger-ui.html"] = map[string]interface{}{
+		pathsMap["/doc.html"] = map[string]interface{}{
 			"get": map[string]interface{}{
 				"tags":        []string{inlineTag},
 				"summary":     "SwaggerUI界面",

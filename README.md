@@ -61,7 +61,7 @@ docker run -ti --rm -p 80:80 snz1/sqlrestful \
   -config "/examples/sqlite.hcl"
 ```
 
-> 此时打开<http://127.0.0.1/swagger-ui.html>查看示例实现接口文档。
+> 此时打开<http://127.0.0.1/doc.html>查看示例实现接口文档。
 
 ## 示例截图
 

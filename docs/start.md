@@ -152,7 +152,7 @@ curl -X GET "http://127.0.0.1/test?limit=15
 
 ## 通过swagger测试
 
-新开标签并打开网址<http://127.0.0.1/swagger-ui.html>，如下图所示：
+新开标签并打开网址<http://127.0.0.1/doc.html>，如下图所示：
 
 <img src="img/swagger.png" width=90%>
 

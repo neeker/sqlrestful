@@ -57,7 +57,7 @@ root {
 
     exec = <<JS
     (function(){
-      return "/swagger-ui.html"
+      return "/doc.html"
     })()
     JS
 
