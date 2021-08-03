@@ -19,6 +19,9 @@ docker build --build-arg GOBUILD_TAGS=oracle -t snz1/sqlrestful .
 ```sh
 docker tag snz1/sqlrestful snz1/sqlrestful:v2.0.0-803
 docker push snz1/sqlrestful:latest
+
+docker tag snz1/sqlrestful gitlab.snz1.cn:9008/go/sqlrestful:v2.0.0-803
+docker push gitlab.snz1.cn:9008/go/sqlrestful:v2.0.0-803
 ```
 
 ## `Windows`版编译
