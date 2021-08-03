@@ -1,4 +1,4 @@
-FROM gitlab.snz1.cn:2008/go/cgobuild:v2.0
+FROM gitlab.snz1.cn:9008/go/cgobuild:v2.0
 
 ARG GOBUILD_TAGS
 
