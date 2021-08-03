@@ -85,6 +85,18 @@ type UDPListener struct {
 	Buff int    //缓存区大小
 }
 
+type SmtpConfig struct {
+	Host string
+	// Port represents the port of the SMTP server.
+	Port int
+	// Username is the username to use to authenticate to the SMTP server.
+	Username string
+	// Password is the password to use to authenticate to the SMTP server.
+	Password           string
+	SSL                bool
+	InsecureSkipVerify bool
+}
+
 // Macro - a macro configuration
 type Macro struct {
 	Brand        string                       //起始标记
@@ -103,6 +115,7 @@ type Macro struct {
 	Security     *SecurityConfig              //安全验证配置
 	Jwt          *JwtConfig                   //JWT身份配置
 	Mq           *MessageQueueConfig          //消息队列配置
+	Smtp         *SmtpConfig                  //邮件发送配置
 	Consume      map[string]string            //消费消息配置
 	Reply        *MessageReplyer              //应答配置
 	Db           *DatabaseConfig              //数据库配置

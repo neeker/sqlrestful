@@ -615,6 +615,11 @@ func (m *Manager) DatabaseConfig() *DatabaseConfig {
 	return m.meta.Db
 }
 
+// SmtpConfig - return smtp config
+func (m *Manager) SmtpConfig() *SmtpConfig {
+	return m.meta.Smtp
+}
+
 //ServiceBrand - return service brand
 func (m *Manager) ServiceBrand() string {
 	return m.meta.Brand

@@ -36,6 +36,10 @@ require (
 	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc
 	golang.org/x/net v0.0.0-20190110200230-915654e7eabc // indirect
 	golang.org/x/text v0.3.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/resty.v1 v1.11.0
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
+
+go 1.13

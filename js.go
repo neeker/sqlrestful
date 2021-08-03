@@ -28,10 +28,12 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"net/smtp"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -39,6 +41,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/dop251/goja"
+	"gopkg.in/gomail.v2"
 	"gopkg.in/resty.v1"
 )
 
@@ -57,6 +60,7 @@ func initJSVM(ctx map[string]interface{}) *goja.Runtime {
 	vm.Set("emit_msg", jsExecEmitMessage)
 	vm.Set("call_macro", jsExecCallMacro)
 	vm.Set("send_udp", jsExecSendUDP)
+	vm.Set("send_mail", jsSendMail)
 
 	vm.Set("ws_broacast", jsExecWebsocketBroacastMessage)
 	vm.Set("ws_send", jsExecWebsocketSendMessage)
@@ -557,4 +561,74 @@ func jsExecSendUDP(rAddr string, msg string, args ...interface{}) (outMsg string
 
 	return outMsg, err
 
+}
+
+type unencryptedAuth struct {
+	smtp.Auth
+}
+
+type loginAuth struct {
+	username, password string
+}
+
+func LoginAuth(username, password string) smtp.Auth {
+	return &loginAuth{username, password}
+}
+
+func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", nil, nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	command := string(fromServer)
+	command = strings.TrimSpace(command)
+	command = strings.TrimSuffix(command, ":")
+	command = strings.ToLower(command)
+	if more {
+		if command == "username" {
+			return []byte(fmt.Sprintf("%s", a.username)), nil
+		} else if command == "password" {
+			return []byte(fmt.Sprintf("%s", a.password)), nil
+		} else {
+			// We've already sent everything.
+			return nil, fmt.Errorf("unexpected server challenge: %s", command)
+		}
+	}
+	return nil, nil
+}
+
+// jsSendMail - 发送邮件
+func jsSendMail(from string, fromName string, to string, subject string, body string) (bool, error) {
+	if macrosManager.SmtpConfig() == nil {
+		return false, fmt.Errorf("未配置SMTP")
+	}
+
+	m := gomail.NewMessage(
+		//发送文本时设置编码，防止乱码。 如果txt文本设置了之后还是乱码，那可以将原txt文本在保存时
+		//就选择utf-8格式保存
+		gomail.SetEncoding(gomail.Base64),
+	)
+
+	m.SetHeader("From", m.FormatAddress(from, fromName)) // 添加别名
+	toAddrs := strings.Split(strings.ReplaceAll(to, ";", ","), ";")
+	m.SetHeader("To", toAddrs...)   // 发送给用户(可以多个)
+	m.SetHeader("Subject", subject) // 设置邮件主题
+	m.SetBody("text/html", body)
+
+	d := gomail.NewDialer(macrosManager.SmtpConfig().Host,
+		macrosManager.SmtpConfig().Port, macrosManager.SmtpConfig().Username, macrosManager.SmtpConfig().Password,
+	)
+
+	if macrosManager.SmtpConfig().SSL {
+		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		d.SSL = true
+	} else {
+		d.Auth = LoginAuth(macrosManager.SmtpConfig().Username, macrosManager.SmtpConfig().Password)
+	}
+
+	err := d.DialAndSend(m)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
