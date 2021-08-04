@@ -39,7 +39,7 @@ sendmail {
         fromName = ""
       }
       try {
-        send_mail($input.from, fromName, $input.to, $input.subject, $input.body)
+        send_mail($input.to, $input.subject, $input.body)
       } catch(err) {
         throw err.message
       }
