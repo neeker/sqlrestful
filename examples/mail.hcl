@@ -34,12 +34,8 @@ sendmail {
     // 直接发送邮件
     exec = <<JS
     (function(){
-      var fromName = $input.fromName
-      if (fromName == undefined) {
-        fromName = ""
-      }
       try {
-        send_mail($input.to, $input.subject, $input.body)
+        send_mail($input.to, $input.cc, $input.bcc, $input.subject, $input.body)
       } catch(err) {
         throw err.message
       }
