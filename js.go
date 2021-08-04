@@ -609,6 +609,14 @@ func jsSendMail(from string, fromName string, to string, subject string, body st
 		gomail.SetEncoding(gomail.Base64),
 	)
 
+	if from == "" || from == "undefined" {
+		from = macrosManager.SmtpConfig().Address
+	}
+
+	if fromName == "" || fromName == "undefined" {
+		from = macrosManager.SmtpConfig().Name
+	}
+
 	m.SetHeader("From", m.FormatAddress(from, fromName)) // 添加别名
 	toAddrs := strings.Split(strings.ReplaceAll(to, ";", ","), ";")
 	m.SetHeader("To", toAddrs...)   // 发送给用户(可以多个)

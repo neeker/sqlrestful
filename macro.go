@@ -95,6 +95,8 @@ type SmtpConfig struct {
 	Password           string
 	SSL                bool
 	InsecureSkipVerify bool
+	Address            string
+	Name               string
 }
 
 // Macro - a macro configuration
