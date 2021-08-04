@@ -13,6 +13,10 @@ _meta {
     
     ssl = false
 
+    address = "mail"
+
+    name = "name"
+
   }
 
 }

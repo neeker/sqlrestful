@@ -598,7 +598,7 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 }
 
 // jsSendMail - 发送邮件
-func jsSendMail(from string, fromName string, to string, subject string, body string) (bool, error) {
+func jsSendMail(to string, cc string, bcc string, subject string, body string) (bool, error) {
 	if macrosManager.SmtpConfig() == nil {
 		return false, fmt.Errorf("未配置SMTP")
 	}
@@ -609,19 +609,29 @@ func jsSendMail(from string, fromName string, to string, subject string, body st
 		gomail.SetEncoding(gomail.Base64),
 	)
 
-	if from == "" || from == "undefined" {
-		from = macrosManager.SmtpConfig().Address
-	}
+	m.SetHeader(
+		"From",
+		m.FormatAddress(
+			macrosManager.SmtpConfig().Address,
+			macrosManager.SmtpConfig().Name,
+		),
+	)
 
-	if fromName == "" || fromName == "undefined" {
-		from = macrosManager.SmtpConfig().Name
-	}
+	toAddrs := strings.Split(strings.ReplaceAll(to, ";", ","), ",")
 
-	m.SetHeader("From", m.FormatAddress(from, fromName)) // 添加别名
-	toAddrs := strings.Split(strings.ReplaceAll(to, ";", ","), ";")
 	m.SetHeader("To", toAddrs...)   // 发送给用户(可以多个)
 	m.SetHeader("Subject", subject) // 设置邮件主题
 	m.SetBody("text/html", body)
+
+	if cc != "" && cc != "undefined" {
+		ccAddrs := strings.Split(strings.ReplaceAll(cc, ";", ","), ",")
+		m.SetHeader("Cc", ccAddrs...)
+	}
+
+	if bcc != "" && bcc != "undefined" {
+		bccAddrs := strings.Split(strings.ReplaceAll(bcc, ";", ","), ",")
+		m.SetHeader("Bcc", bccAddrs...)
+	}
 
 	d := gomail.NewDialer(macrosManager.SmtpConfig().Host,
 		macrosManager.SmtpConfig().Port, macrosManager.SmtpConfig().Username, macrosManager.SmtpConfig().Password,

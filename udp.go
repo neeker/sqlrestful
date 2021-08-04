@@ -121,7 +121,7 @@ func (m *Macro) StartListenUDP() error {
 
 		if *flagDebug > 2 {
 			log.Printf(
-				"%s udp listen got %dB data: [%v] %v",
+				"%s udp listen got %dB data: %v",
 				m.name,
 				dataSiz,
 				data[:dataSiz],
